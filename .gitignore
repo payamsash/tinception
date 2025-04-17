@@ -1,1 +1,4 @@
 venv/
+metadata/
+__pycache__/
+*.py[cod]
