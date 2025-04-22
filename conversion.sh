@@ -53,6 +53,23 @@ subjects_raw="/home/ubuntu/data/tinception/subjects_raw"
 cd $subjects_raw
 nohup bash -c 'ls *.mgz | parallel --jobs 10 "subject={.}; [[ \$subject == MR* ]] && flag=\"-notal-check\" || flag=\"\"; recon-all -s \$subject -i {} -all \$flag"' &
 
-###### COGFAIL
+###### COGTAIL
+cogtail_dir="/home/ubuntu/data/tinception/cogtail/CogTAiL/ICCAC" # NT-HA  NT-HL  TI-HA  TI-HL ICCAC
+cogtail_subjects_dir="/home/ubuntu/data/cogtail/subjects_raw"
 
+mkdir -p "$dest"
+for subj_dir in "$cogtail_dir"/*/; do
+    subj_id=$(basename "$subj_dir")
+    nii_file=$(find "$subj_dir" -maxdepth 1 -name "*.nii" | head -n 1)
+    if [ -n "$nii_file" ]; then
+        cp "$nii_file" "$cogtail_subjects_dir/${subj_id}.nii"
+        echo "Moved $nii_file to $cogtail_subjects_dir/${subj_id}.nii"
+    else
+        echo "No .nii file found in $subj_dir"
+    fi
+done
+
+subjects_raw="/home/ubuntu/data/tinception/subjects_raw"
+cd $subjects_raw
+nohup bash -c 'ls *.nii | parallel --jobs 25 recon-all -s {.} -i {} -all' &
 
