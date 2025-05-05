@@ -10,23 +10,40 @@ export FREESURFER_HOME=/usr/local/freesurfer/8.0.0
 export SUBJECTS_DIR=/home/ubuntu/volume/subjects_fs_dir
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
-VBM_DIR="/home/ubuntu/volume/VBM"
+VBM_b_DIR="/home/ubuntu/volume/VBM_b"
+VBM_n_DIR="/home/ubuntu/volume/VBM_n"
+temp="/home/ubuntu/volume/temp"
 ID_FILE="/home/ubuntu/data/src_codes/matched_subjects.txt"  # list of matched subject IDs
-mkdir -p "$VBM_DIR"
+mkdir -p "$VBM_b_DIR"
+mkdir -p "$VBM_n_DIR"
+mkdir -p "$temp"
 
 while IFS= read -r subj; do
     src_file="$SUBJECTS_DIR/$subj/mri/orig/001.mgz"
-    dest_file="$VBM_DIR/${subj}.nii.gz"
-    temp_nii="/home/ubuntu/volume/temp/${subj}.nii"
-    
-    if [ -f "$src_file" ]; then
-        mri_convert "$src_file" "$temp_nii"
-        fslreorient2std "$temp_nii" "$dest_file"
-        rm "$temp_nii"
-        echo "Saved $dest_file"
+    temp_nii="/home/ubuntu/volume/temp/${subj}.nii" 
 
+    if [[ "$subj" =~ ^[0-9]{2} ]]; then # tinmeg
+        dest_file="$VBM_n_DIR/${subj}.nii.gz"
+
+    elif [[ "$subj" != MR* ]]; then # tinspect
+
+    elif [[ "$subj" != S* ]]; then # neuropren
+        
+        
+        if [ -f "$src_file" ]; then
+            mri_convert "$src_file" "$temp_nii"
+            fslreorient2std "$temp_nii" "$dest_file"
+            rm "$temp_nii"
+            echo "Saved $dest_file"
+        else
+            echo "Warning: $src_file not found"
+        fi
     else
-        echo "Warning: $src_file not found"
+
+        echo "Running fs_to_fsl.py for $subj"
+
+        python fs_to_fsl.py --subject "$subj" --subjects_dir $SUBJECTS_DIR
+
     fi
 done < "$ID_FILE"
 
