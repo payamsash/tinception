@@ -1,4 +1,28 @@
-venv/
+# Python cache files
+**/__pycache__/
+
+# Virtual environment
+**/venv/
+**/.env/
+**/env/
+**/.venv/
+
+# Jupyter Notebook checkpoints
+**/*.ipynb
+
+# IDE and editor files
+**/.vscode/
+**/.idea/
+**/*.swp
+
+# Pytest cache
+.cache/
+
+# OS-specific files
+**/.DS_Store
+**/Thumbs.db
+
 metadata/
-__pycache__/
-*.py[cod]
+data/
+
+
