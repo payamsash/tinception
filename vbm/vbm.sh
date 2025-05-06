@@ -78,42 +78,12 @@ while IFS= read -r subj; do
 
 done < "$ID_FILE"
 
-'''
+
 cd $VBM_DIR
 fslvbm_1_bet -b
+fslvbm_2_template -n # for some data -R -f 0.6
 
 
-## checks here slicesdir
-fslvbm_2_template -n
 
-## create design.mat with text2vest (demean age, 3 dummy var for site and 2 cols for group)
-
-1 0 -6 1 0 0 0
-1 0 -3 0 1 0 0
-1 0  4 1 0 1 0
-1 0  0 0 0 0 1
-0 1 -5 1 0 0 0
-0 1  3 1 1 0 0
-0 1  6 0 0 1 0
-0 1 -2 0 0 0 1
-...
-
-
-## next create design.con with: Text2Vest contrasts.txt design.con
-
--1  1  0  0  0  0  0  # Tinnitus > Control
- 1 -1  0  0  0  0  0  # Control > Tinnitus
-
-
--1  1  0  0
-1 -1  0  0
-
-
-### for paper plot
-freeview -f \
-  $SUBJECTS_DIR/subject/surf/lh.pial:curvature=curv \
-  -viewport 3d
-
-'''
 
 
