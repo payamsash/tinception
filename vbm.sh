@@ -22,41 +22,72 @@ while IFS= read -r subj; do
     src_file="$SUBJECTS_DIR/$subj/mri/orig/001.mgz"
     temp_nii="/home/ubuntu/volume/temp/${subj}.nii" 
 
-    if [[ "$subj" =~ ^[0-9]{2} ]]; then # tinmeg
-        dest_file="$VBM_n_DIR/${subj}.nii.gz"
+    if [ -f "$src_file" ]; then 
 
-    elif [[ "$subj" != MR* ]]; then # tinspect
+        if [[ "$subj" =~ ^[0-9]{2} ]]; then # tinmeg
+            dest_file="$VBM_n_DIR/${subj}.nii.gz"
+            if [ ! -f "$dest_file" ]; then
+                mri_convert "$src_file" "$temp_nii"
+                fslreorient2std "$temp_nii" "$dest_file"
+                rm "$temp_nii"
+                echo "Saved $dest_file"
+            fi
 
-    elif [[ "$subj" != S* ]]; then # neuropren
+        elif [[ "$subj" == ICC* ]]; then # talaska
+            dest_file="$VBM_b_DIR/${subj}.nii.gz"
+            if [ ! -f "$dest_file" ]; then
+                mri_convert "$src_file" "$temp_nii"
+                fslreorient2std "$temp_nii" "$dest_file"
+                rm "$temp_nii"
+                echo "Saved $dest_file"
+            fi
+
+        elif [[ "$subj" == *MRT || "$subj" == *MRT_2 ]]; then # neuropren
+            dest_file="$VBM_n_DIR/${subj}.nii.gz"
+            if [ ! -f "$dest_file" ]; then
+                mri_convert "$src_file" "$temp_nii"
+                fslreorient2std "$temp_nii" "$dest_file"
+                rm "$temp_nii"
+                echo "Saved $dest_file"
+            fi
+
+        elif [[ "$subj" == *NT-HL || "$subj" == *NT-HA || "$subj" == *TI-HL || "$subj" == *TI-HA ]]; then
+            dest_file="$VBM_n_DIR/${subj}.nii.gz"
+            if [ ! -f "$dest_file" ]; then
+                mri_convert "$src_file" "$temp_nii"
+                fslreorient2std "$temp_nii" "$dest_file"
+                rm "$temp_nii"
+                echo "Saved $dest_file"
+            fi
+
+        elif [[ "$subj" == MR* ]]; then # tinspect
+            dest_file="$VBM_b_DIR/${subj}.nii.gz"
+            if [ ! -f "$dest_file" ]; then
+                mri_convert "$src_file" "$temp_nii"
+                fslreorient2std "$temp_nii" "$dest_file"
+                python fs_to_fsl.py --input_fname "$dest_file" --output_fname "$dest_file"
+                rm "$temp_nii"
+                echo "Saved $dest_file"
+            fi
         
-        
-        if [ -f "$src_file" ]; then
-            mri_convert "$src_file" "$temp_nii"
-            fslreorient2std "$temp_nii" "$dest_file"
-            rm "$temp_nii"
-            echo "Saved $dest_file"
-        else
-            echo "Warning: $src_file not found"
         fi
     else
-
-        echo "Running fs_to_fsl.py for $subj"
-
-        python fs_to_fsl.py --subject "$subj" --subjects_dir $SUBJECTS_DIR
-
+        echo "Source file not found for subject $subj"
+    
     fi
+
 done < "$ID_FILE"
 
-
+'''
 cd $VBM_DIR
 fslvbm_1_bet -b
 
-'''
+
 ## checks here slicesdir
 fslvbm_2_template -n
 
 ## create design.mat with text2vest (demean age, 3 dummy var for site and 2 cols for group)
-'''
+
 1 0 -6 1 0 0 0
 1 0 -3 0 1 0 0
 1 0  4 1 0 1 0
@@ -66,7 +97,7 @@ fslvbm_2_template -n
 0 1  6 0 0 1 0
 0 1 -2 0 0 0 1
 ...
-'''
+
 
 ## next create design.con with: Text2Vest contrasts.txt design.con
 

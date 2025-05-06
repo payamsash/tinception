@@ -13,15 +13,15 @@ data$site <- as.factor(data$site)
 match_out <- matchit(
                     group ~ age + sex + site, 
                     data = data, 
-                    method = "nearest",
+                    method = "optimal",
                     distance = "glm"
                     )
 
 matched_data <- match.data(match_out) %>% 
     dplyr::filter(weights > 0)
 
-write.xlsx(matched_data, "./data/tinception_matched.xlsx")
-write_lines(unique(matched_data$`subject ID`), "./data/matched_subjects.txt")
+write.xlsx(matched_data, "./data/tinception_matched_optimal.xlsx")
+write_lines(unique(matched_data$`subject ID`), "./data/matched_subjects_optimal.txt")
 
 ## plotting
 quartz()
