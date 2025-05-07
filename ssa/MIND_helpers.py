@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from collections import defaultdict
+from itertools import combinations
 
 def is_outlier(points, thresh=7): #taken from https://stackoverflow.com/questions/22354094/pythonic-way-of-detecting-outliers-in-one-dimensional-observation-data
 
@@ -86,6 +87,7 @@ def get_KL(x, y, xtree, ytree): #Inspired by https://gist.github.com/atabakd/ed0
 
 def calculate_mind_network(data_df, feature_cols, region_list, resample=False, n_samples = 4000):
 
+    '''
     MIND = pd.DataFrame(np.zeros((len(region_list), len(region_list))), \
                         index = region_list, columns = region_list)
 
@@ -146,4 +148,34 @@ def calculate_mind_network(data_df, feature_cols, region_list, resample=False, n
 
     MIND = MIND[region_list].T[region_list].T
     
+    return MIND
+    '''
+
+    MIND = pd.DataFrame(np.zeros((len(region_list), len(region_list))), 
+                    index=region_list, columns=region_list)
+
+    # Filter once
+    data_df = data_df[data_df['Label'].isin(region_list)]
+
+    # Group data and build KDTree for each region
+    grouped_data = {label: df[feature_cols].values for label, df in data_df.groupby('Label')}
+    KDtrees = {label: get_KDTree(features) for label, features in grouped_data.items()}
+
+    # Iterate only over unique unordered region pairs
+    for name_x, name_y in combinations(region_list, 2):
+        dat_x = grouped_data[name_x]
+        dat_y = grouped_data[name_y]
+
+        KLa = get_KL(dat_x, dat_y, KDtrees[name_x], KDtrees[name_y])
+        KLb = get_KL(dat_y, dat_x, KDtrees[name_y], KDtrees[name_x])
+
+        kl = KLa + KLb
+        sim = 1 / (1 + kl)
+
+        MIND.at[name_x, name_y] = sim
+        MIND.at[name_y, name_x] = sim
+
+    # Optional: ensure final MIND matrix is properly ordered
+    MIND = MIND.loc[region_list, region_list]
+
     return MIND

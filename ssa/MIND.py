@@ -41,11 +41,11 @@ def compute_MIND(surf_dir, features, parcellation, filter_vertices=False, resamp
 	# outliers_per_features = np.array([is_outlier(vertex_data[x].values, z_score_threshhold) for x in features_used]).T
 	# vertex_data = vertex_data.loc[np.sum(outliers_per_features, axis = 1) == 0]
 
-	print('Computing MIND...')
+	# print('Computing MIND...')
 	#calculate MIND network
 	MIND = calculate_mind_network(vertex_data, features_used, regions, resample=resample, n_samples = n_samples)
 
-	print('Done!')
+	# print('Done!')
 	return MIND
 
 

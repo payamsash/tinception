@@ -6,9 +6,10 @@ import pandas as pd
 def get_roi_volumes():
 
     ## set paths and rois
-    fs_dir = "/Applications/freesurfer/dev"
-    subjects_dir = "/Users/payamsadeghishabestari/antinomics_clean_codes/dvob_processed/sMRI"
-    tables_dir = "/Users/payamsadeghishabestari/antinomics_clean_codes/dvob_processed/sMRI/tables"
+    fs_dir = "/usr/local/freesurfer/8.0.0"
+    subjects_dir = "/home/ubuntu/volume/subjects_fs_dir"
+    tables_dir = f"{subjects_dir}/tables"
+    os.makedirs(tables_dir, exist_ok=True)
     
     subjects = []
     for subject in os.listdir(subjects_dir):
