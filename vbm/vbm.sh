@@ -82,8 +82,12 @@ done < "$ID_FILE"
 cd $VBM_DIR
 fslvbm_1_bet -b
 fslvbm_2_template -n # for some data -R -f 0.6
+fslvbm_3_proc
+fslmaths GM_mod_merg -s 3.5 GM_mod_merg_s3.5
 
 
-
-
-
+nohup bash -c 'randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s35 -m GM_mask -o fslvbm_s35 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4 -d design.mat -t design.con -T -n 5000' \
+                > out.log 2>&1 &
