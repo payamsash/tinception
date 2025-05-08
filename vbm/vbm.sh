@@ -91,7 +91,7 @@ nohup bash -c 'randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3 -d design.mat
 
 ## just using subcortical VBM
 nohup bash -c 'randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000; \
-                randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s3_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000' \
+                randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000' \
                 > out2.log 2>&1 &
 
 fsleyes $FSLDIR/data/standard/MNI152_T1_2mm fslvbm_s3_80_tfce_corrp_tstat1 -cm red-yellow -dr 0.949 1
