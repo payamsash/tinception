@@ -16,7 +16,7 @@ def compute_ssa():
             ]
 
     subjects = []
-    for subject in os.listdir(subjects_dir):
+    for subject in sorted(os.listdir(subjects_dir)):
         if os.path.isdir(f'{subjects_dir}/{subject}/hist'):
             subjects.append(f"{subject}")
 
