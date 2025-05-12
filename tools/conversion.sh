@@ -51,7 +51,7 @@ done
 
 subjects_raw="/home/ubuntu/data/tinception/subjects_raw"
 cd $subjects_raw
-nohup bash -c 'ls *.mgz | parallel --jobs 10 "subject={.}; [[ \$subject == MR* ]] && flag=\"-notal-check\" || flag=\"\"; recon-all -s \$subject -i {} -all \$flag"' &
+nohup bash -c 'ls *.nii | parallel --jobs 21 "subject={.}; [[ \$subject == MR* ]] && flag=\"-notal-check\" || flag=\"\"; recon-all -s \$subject -i {} -all \$flag"' &
 
 ###### COGTAIL
 cogtail_dir="/home/ubuntu/data/tinception/cogtail/CogTAiL/ICCAC" # NT-HA  NT-HL  TI-HA  TI-HL ICCAC
@@ -73,3 +73,5 @@ subjects_raw="/home/ubuntu/data/tinception/subjects_raw"
 cd $subjects_raw
 nohup bash -c 'ls *.nii | parallel --jobs 25 recon-all -s {.} -i {} -all' &
 
+
+# nohup bash -c "ls *.nii.gz | parallel --jobs 42 'recon-all -s {= s/\.nii\.gz$// =} -i {} -all'" > recon_all.log 2>&1 &
