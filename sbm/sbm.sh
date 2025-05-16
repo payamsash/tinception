@@ -24,56 +24,43 @@ done
 
 
 hemis=("lh" "rh")
-smoothing_opts=(5 10 15)
+smoothing_opts=("5" "10" "15")
 measures=("volume" "area" "thickness")
-cd $SUBJECTS_DIR
-
-#### first analysis: SBM on 2 groups without covariates
-study="Tin_p1"
-mkdir $study
-
-# put participants.tsv into Tin_p1
-
-
-## model setup
-tr '\r' '\n' < $SUBJECTS_DIR/$study/participants.txt > $SUBJECTS_DIR/$study/$study.fsgd
-cd $SUBJECTS_DIR/$study
-echo "1 -1" > CO-TI.mtx
-echo "-1 1" > TI-CO.mtx
+sbm_dir="/home/ubuntu/volume/SBM"
 
 ## resampling surface or volume source data to a common subject
 for hemi in "${hemis[@]}"; do
-    for smoothing in "$(smoothing_opts[@])"; do
-        for measure in "$(measures[@])"; do
-            mris_preproc --fsgd $SUBJECTS_DIR/$study/$study.fsgd \
+    for smoothing in "${smoothing_opts[@]}"; do
+        for measure in "${measures[@]}"; do
+            mris_preproc --fsgd $sbm_dir/FSGD/tinception_fsgd.fsgd \
                         --cache-in {$measure}.fwhm{$smoothing}.fsaverage \
                         --target fsaverage \
                         --hemi $hemi \
-                        --out $SUBJECTS_DIR/$study/{$hemi}.{$measure}.{$smoothing}.mgh
+                        --out $sbm_dir/results/{$hemi}.{$measure}.{$smoothing}.mgh
         done
     done
 done
 
 ## GLM analysis in the volume or the surface
 for hemi in "${hemis[@]}"; do
-    for smoothing in "$(smoothing_opts[@])"; do
-        for measure in "$(measures[@])"; do
-            mri_glmfit --y $SUBJECTS_DIR/$study/{$hemi}.{$measure}.{$smoothing}.mgh \
-                        --fsgd $SUBJECTS_DIR/$study/$study.fsgd \
-                        --C $SUBJECTS_DIR/$study/CO-TI.mtx \
-                        --C $SUBJECTS_DIR/$study/TI-CO.mtx \
+    for smoothing in "${smoothing_opts[@]}"; do
+        for measure in "${measures[@]}"; do
+            mri_glmfit --y $sbm_dir/results/$hemi.$measure.$smoothing.mgh \
+                        --fsgd $sbm_dir/FSGD/tinception_fsgd.fsgd \
+                        --C $sbm_dir/Contrasts/CO-TI.mtx \
+                        --C $sbm_dir/Contrasts/TI-CO.mtx \
                         --surf fsaverage $hemi \
                         --cortex \
-                        --glmdir $SUBJECTS_DIR/$study/{$hemi}.{$measure}.{$smooting}.glmdir
+                        --glmdir $sbm_dir/results/$hemi.$measure.$smoothing.glmdir
         done
     done
 done
 
 ## cluster correction (1.3, 2, 2.3, 3)
 for hemi in "${hemis[@]}"; do
-    for smoothing in "$(smoothing_opts[@])"; do
-        for measure in "$(measures[@])"; do
-            for dir in "${hemi}.${measure}.${smoothing}.glmdir"; do
+    for smoothing in "${smoothing_opts[@]}"; do
+        for measure in "${measures[@]}"; do
+            for dir in "$sbm_dir/results/$hemi.$measure.$smoothing.glmdir"; do
                 mri_glmfit-sim --glmdir $dir \
                                 --cache 1.3 abs \ 
                                 --cwp 0.05 \
@@ -83,3 +70,11 @@ for hemi in "${hemis[@]}"; do
     done
 done
 
+
+## visualize
+surf_dir="/Applications/freesurfer/dev/subjects/fsaverage/surf"
+smoothing=10
+measure="thickness"
+mode="neg"
+freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/CO-TI/cache.th13.$mode.sig.cluster.mgh:overlay_threshold=1.3,10  \
+            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/CO-TI/cache.th13.$mode.sig.cluster.mgh:overlay_threshold=1.3,10
