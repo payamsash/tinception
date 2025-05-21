@@ -3,6 +3,7 @@ library(MatchIt)
 library(openxlsx)
 library(readr)
 library(gtsummary)
+library(ggplot2)
 
 data <- read_csv("./data/tinception_master_ready_for_matching.csv")
 data$group <- as.factor(data$group)
@@ -13,7 +14,7 @@ data$site <- as.factor(data$site)
 match_out <- matchit(
                     group ~ age + sex + site, 
                     data = data, 
-                    method = "optimal",
+                    method = "nearest",
                     distance = "glm"
                     )
 
