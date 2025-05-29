@@ -147,7 +147,7 @@ def estimate_norm_1(roi_fname):
     blr_metrics = pd.DataFrame(columns=['ROI', 'MSLL', 'EV', 'SMSE', 'RMSE', 'Rho'])
     blr_site_metrics = pd.DataFrame(columns=['ROI', 'site', 'y_mean', 'y_var', 'yhat_mean',
                                                 'yhat_var', 'MSLL', 'EV', 'SMSE', 'RMSE', 'Rho'])
-    df_z = pd.DataFrame(columns=['ROI', 'z_value', 'site'])
+    df_z = pd.DataFrame(columns=['ROI', 'z_value', 'site', 'group']) # fix group
     
     for roi in regions:
         # configure the covariates to use
@@ -176,7 +176,7 @@ def estimate_norm_1(roi_fname):
             zs = np.array(z_scores[site])[:, 0]
             site_name = site_names[num]
             for z in zs:
-                df_z.loc[len(df_z)] = [roi, z, site_name]
+                df_z.loc[len(df_z)] = [roi, z, site_name, group] # fix group
 
         # save metrics
         blr_metrics.loc[len(blr_metrics)] = [
