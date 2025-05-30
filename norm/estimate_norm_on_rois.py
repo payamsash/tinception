@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from pcntoolkit.normative import estimate
+from pcntoolkit.normative import estimate, evaluate
 from pcntoolkit.util.utils import create_bspline_basis
 
 
@@ -12,14 +12,16 @@ def estimate_norm_on_rois(roi_fname):
 
     ###################### prepare data
 
+    ## load files done
     norm_dir = Path.cwd().parent / "data" / "norm"
     roi_dir = Path.cwd().parent / "data" / "roi_stats"
     fname = roi_dir / roi_fname
     df = pd.read_csv(fname, index_col=0)
+    site_names = ["karolinska", "cogtail", "talaska", "tinspect", "neuropren"]
 
     ## add covariates
     fname_cov = Path.cwd().parent / "data" / "tinception_tiv_fsgd.txt"
-    df_cov = pd.read_csv(fname_cov, index_col=0, delimiter="\t")
+    df_cov = pd.read_csv(fname_cov, delimiter="\t")
     df_cov.dropna(inplace=True)
     subjects = list(df_cov["Unnamed: 1"])
     df = df.query('subjects == @subjects')
@@ -30,6 +32,8 @@ def estimate_norm_on_rois(roi_fname):
     df["TIV"] = df_cov["Unnamed: 5"].values
     df["site"] = df_cov["Unnamed: 6"].values
     df["group"] = df_cov["Unnamed: 2"].values
+
+    df.reset_index(inplace=True, drop=True)
 
     ## add variable to model site/scanner effects
     if "MV(Re)" in df.columns.to_list():
@@ -42,6 +46,7 @@ def estimate_norm_on_rois(roi_fname):
     df['sex'] = df['sex'].astype('category')
     df['site'] = df['site'].astype('category')
 
+    # fix this part
     df.drop(columns=[
                     "lh_WhiteSurfArea_area",
                     "rh_WhiteSurfArea_area",
@@ -60,13 +65,25 @@ def estimate_norm_on_rois(roi_fname):
 
     rois = df.columns[1:-5]
     df.dropna(inplace=True)
-    df["age_demean"] = df["age"] - df["age"].mean() # demean the age
+    df["age_demean"] = df["age"] - df["age"].mean()
     df_controls = df.query('group == "CO"')
+    df_controls.reset_index(inplace=True, drop=True)
 
+    ## get site indexes
+    site_indices_in_con = {}
+    site_indices = {}
+
+    for site_val in df_controls["site"].unique():
+        site_indices_in_con[site_val] = df_controls.index[df_controls["site"] == site_val].tolist()
+
+    for site_val in df["site"].unique():
+        site_indices[site_val] = df.index[df["site"] == site_val].tolist()
+
+    ## create feature dfs
     df_features = df[rois]
     df_con_features = df_controls[rois]
 
-    df_cov = df[["age_demean", "sex", "TIV", "site"]] # add TIV
+    df_cov = df[["age_demean", "sex", "TIV", "site"]]
     df_cov = pd.get_dummies(df_cov, columns=['site'], dtype=float)
 
     df_con_cov = df_controls[["age_demean", "sex", "TIV", "site"]]
@@ -103,8 +120,9 @@ def estimate_norm_on_rois(roi_fname):
     os.makedirs(roi_models_dir / "results", exist_ok=True)
 
     ###################### estimate norm brain
-
     df_metrics_list = []
+    df_site_metrics = pd.DataFrame(columns = ['roi', 'site', 'MSLL', 'EXPV', 'SMSE', 'RMSE', 'Rho'])
+
     for roi in rois:
         resp_file_tr = str(roi_models_dir / f'resp_tr_{roi}.txt')
         resp_file_te = str(roi_models_dir / f'resp_te_{roi}.txt')
@@ -133,8 +151,28 @@ def estimate_norm_on_rois(roi_fname):
         df_metric["ROI"] = roi
         df_metrics_list.append(df_metric)
 
+
+        for key, val in site_indices.items():
+            y_mean_te_site = np.array([df_features[roi].iloc[val].values.mean()])
+            y_var_te_site = np.array([df_features[roi].iloc[val].values.var()])
+
+
+            metrics_te_site = evaluate(np.array([df_features[roi].iloc[val].values]).T,
+                                        yhat_te[val], s2_te[val], y_mean_te_site, y_var_te_site)
+            
+            df_site_metrics.loc[len(df_site_metrics)] = [
+                                                            roi,
+                                                            site_names[int(key)],
+                                                            metrics_te_site['MSLL'][0],
+                                                            metrics_te_site['EXPV'][0],
+                                                            metrics_te_site['SMSE'][0],
+                                                            metrics_te_site['RMSE'][0],
+                                                            metrics_te_site['Rho'][0]
+                                                            ]
+
     df_metrics = pd.concat(df_metrics_list)
     df_metrics.to_csv(roi_models_dir / "results" / "metrics.csv")
+    df_site_metrics.to_csv(roi_models_dir / "results" / "site_metrics.csv")
 
     ## cleaning
     pattern = os.path.join(roi_models_dir, 'resp*.txt')
