@@ -70,12 +70,7 @@ def estimate_norm_on_rois(roi_fname):
     df_controls.reset_index(inplace=True, drop=True)
 
     ## get site indexes
-    site_indices_in_con = {}
     site_indices = {}
-
-    for site_val in df_controls["site"].unique():
-        site_indices_in_con[site_val] = df_controls.index[df_controls["site"] == site_val].tolist()
-
     for site_val in df["site"].unique():
         site_indices[site_val] = df.index[df["site"] == site_val].tolist()
 
