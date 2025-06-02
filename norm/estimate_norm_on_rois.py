@@ -4,11 +4,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
 from pcntoolkit.normative import estimate, evaluate
 from pcntoolkit.util.utils import create_bspline_basis
 
 
-def estimate_norm_on_rois(roi_fname):    
+def estimate_norm_on_rois(roi_fname, method, test_size=0.2, random_state=42):    
 
     ###################### prepare data
 
@@ -17,7 +18,7 @@ def estimate_norm_on_rois(roi_fname):
     roi_dir = Path.cwd().parent / "data" / "roi_stats"
     fname = roi_dir / roi_fname
     df = pd.read_csv(fname, index_col=0)
-    site_names = ["karolinska", "cogtail", "talaska", "tinspect", "neuropren"]
+    site_names = ["karolinska", "cogtail", "tinspect", "neuropren"] # no talaska
 
     ## add covariates
     fname_cov = Path.cwd().parent / "data" / "tinception_tiv_fsgd.txt"
@@ -28,11 +29,12 @@ def estimate_norm_on_rois(roi_fname):
 
     ## add covariates
     df["sex"] = df_cov["Unnamed: 3"].values
-    df["age"] = df_cov["Unnamed: 4"].values
+    df["age"] = df_cov["Unnamed: 4"].values / 100
     df["TIV"] = df_cov["Unnamed: 5"].values
     df["site"] = df_cov["Unnamed: 6"].values
     df["group"] = df_cov["Unnamed: 2"].values
 
+    df = df[df["site"] != 2] # drop talaske
     df.reset_index(inplace=True, drop=True)
 
     ## add variable to model site/scanner effects
@@ -66,38 +68,42 @@ def estimate_norm_on_rois(roi_fname):
     rois = df.columns[1:-5]
     df.dropna(inplace=True)
     df["age_demean"] = df["age"] - df["age"].mean()
-    df_controls = df.query('group == "CO"')
-    df_controls.reset_index(inplace=True, drop=True)
+    df = df.query('group == "CO"')
+    df.reset_index(inplace=True, drop=True)
 
-    ## get site indexes
-    site_indices = {}
-    for site_val in df["site"].unique():
-        site_indices[site_val] = df.index[df["site"] == site_val].tolist()
-
-    ## create feature dfs
     df_features = df[rois]
-    df_con_features = df_controls[rois]
+    df_cov = df[["age_demean", "sex", "TIV", "site"]]
+    df_cov = pd.get_dummies(df_cov, columns=['site'], dtype=float)
 
     df_cov = df[["age_demean", "sex", "TIV", "site"]]
     df_cov = pd.get_dummies(df_cov, columns=['site'], dtype=float)
 
-    df_con_cov = df_controls[["age_demean", "sex", "TIV", "site"]]
-    df_con_cov = pd.get_dummies(df_con_cov, columns=['site'], dtype=float)
-
     rois = rois.to_list()
-    roi_models_dir = norm_dir / "roi_models" / roi_fname[:-4]
+    roi_models_dir = norm_dir / "roi_models" / f"{roi_fname[:-4]}"
     os.makedirs(roi_models_dir, exist_ok=True)
+
+
+    X_tr, X_te, y_train, y_test, z_train, z_test = train_test_split(
+                                                        df_cov,
+                                                        df_features,
+                                                        df,
+                                                        stratify=df["site"],
+                                                        test_size=test_size,
+                                                        random_state=random_state
+                                                        )
+
+    z_test.reset_index(drop="index", inplace=True)
+    sites_dict = dict(zip([0, 1, 3, 4], ["karolinska", "cogtail", "tinspect", "neuropren"]))
+
+    np.savetxt(roi_models_dir / 'cov_tr.txt', X_tr)
+    np.savetxt(roi_models_dir / 'cov_te.txt', X_te)
 
     ###################### bsplines
 
-    xmin, xmax = (10, 95) 
-    B = create_bspline_basis(xmin, xmax)
-
-    X_tr = df_con_cov.to_numpy()
-    X_te = df_cov.to_numpy()
     X_tr = np.concatenate((X_tr, np.ones((X_tr.shape[0], 1))), axis=1)
     X_te = np.concatenate((X_te, np.ones((X_te.shape[0], 1))), axis=1)
 
+    B = create_bspline_basis(xmin=10, xmax=95, p=3, nknots=5)
     Phi = np.array([B(i) for i in X_tr[:, 0]])
     Phis = np.array([B(i) for i in X_te[:, 0]])
     X_tr = np.concatenate((X_tr, Phi), axis=1)
@@ -105,12 +111,12 @@ def estimate_norm_on_rois(roi_fname):
     np.savetxt(roi_models_dir / 'cov_bspline_tr.txt', X_tr)
     np.savetxt(roi_models_dir / 'cov_bspline_te.txt', X_te)
 
-    for roi in df_features.columns:
-        df_con_features[roi].to_csv(roi_models_dir / f'resp_tr_{roi}.txt', header=False, index=False)
-        df_features[roi].to_csv(roi_models_dir / f'resp_te_{roi}.txt', header=False, index=False)
+    np.savetxt(roi_models_dir / 'batch_tr.txt', np.array(z_train["site"].values))
+    np.savetxt(roi_models_dir / 'batch_te.txt', np.array(z_test["site"].values))
 
-    cov_file_tr = str(roi_models_dir / 'cov_bspline_tr.txt')
-    cov_file_te = str(roi_models_dir / 'cov_bspline_te.txt')
+    for roi in df_features.columns:
+        y_train[roi].to_csv(roi_models_dir / f'resp_tr_{roi}.txt', header=False, index=False)
+        y_test[roi].to_csv(roi_models_dir / f'resp_te_{roi}.txt', header=False, index=False)
 
     os.makedirs(roi_models_dir / "results", exist_ok=True)
 
@@ -123,19 +129,59 @@ def estimate_norm_on_rois(roi_fname):
         resp_file_te = str(roi_models_dir / f'resp_te_{roi}.txt')
         
         # run a basic model
-        yhat_te, s2_te, nm, z_scores, metric_te = estimate(
-                                                            cov_file_tr,
-                                                            resp_file_tr,
-                                                            testresp=resp_file_te,
-                                                            testcov=cov_file_te,
-                                                            alg="blr",
-                                                            optimizer="powell",
-                                                            savemodel=False,
-                                                            saveoutput=False,
-                                                            standardize=False
-                                                            )
+        if method == "blr_spline":
+            cov_file_tr = str(roi_models_dir / 'cov_bspline_tr.txt')
+            cov_file_te = str(roi_models_dir / 'cov_bspline_te.txt')
+            yhat_te, s2_te, nm, z_scores, metric_te = estimate(
+                                                                cov_file_tr,
+                                                                resp_file_tr,
+                                                                testresp=resp_file_te,
+                                                                testcov=cov_file_te,
+                                                                alg="blr",
+                                                                optimizer="powell",
+                                                                savemodel=False,
+                                                                saveoutput=False,
+                                                                standardize=False
+                                                                )
+        if method == "blr":
+            cov_file_tr = str(roi_models_dir / 'cov_tr.txt')
+            cov_file_te = str(roi_models_dir / 'cov_te.txt')
+            yhat_te, s2_te, nm, z_scores, metric_te = estimate(
+                                                                cov_file_tr,
+                                                                resp_file_tr,
+                                                                testresp=resp_file_te,
+                                                                testcov=cov_file_te,
+                                                                alg="hbr",
+                                                                binary=True,
+                                                                # optimizer="powell",
+                                                                savemodel=False,
+                                                                saveoutput=False,
+                                                                standardize=False
+                                                                )
         
-        df_norm = df[["subjects", roi, "age", "sex", "site", "group"]]
+
+        if method == "hbr":
+            trbefile = str(roi_models_dir / 'batch_tr.txt')
+            tsbefile = str(roi_models_dir / 'batch_te.txt')
+            yhat_te, s2_te, nm, z_scores, metric_te = estimate(
+                                                                covfile=cov_file_tr,
+                                                                respfile=resp_file_tr,
+                                                                tsbefile=tsbefile,
+                                                                trbefile=trbefile,
+                                                                inscaler="standardize",
+                                                                outscaler="standardize",
+                                                                linear_mu="True",
+                                                                random_intercept_mu="True",
+                                                                centered_intercept_mu="True",
+                                                                alg="hbr",
+                                                                binary=True,
+                                                                testcov=cov_file_te,
+                                                                testresp=resp_file_te,
+                                                                savemodel=False,
+                                                                nuts_sampler="nutpie",
+                                                                )
+
+        df_norm = z_test[["subjects", roi, "age", "sex", "site", "group"]]
         df_norm["yhat_te"] = yhat_te
         df_norm["s2_te"] = s2_te
         df_norm["z_scores"] = z_scores
@@ -147,17 +193,19 @@ def estimate_norm_on_rois(roi_fname):
         df_metrics_list.append(df_metric)
 
 
-        for key, val in site_indices.items():
-            y_mean_te_site = np.array([df_features[roi].iloc[val].values.mean()])
-            y_var_te_site = np.array([df_features[roi].iloc[val].values.var()])
+        for key, val in sites_dict.items():
+            z_sub = z_test[z_test["site"] == key]
+            idxs = np.array(z_test[z_test["site"] == key].index)
+            y_mean_te_site = np.array([z_sub[roi].values.mean()])
+            y_var_te_site = np.array([z_sub[roi].values.var()])
 
 
-            metrics_te_site = evaluate(np.array([df_features[roi].iloc[val].values]).T,
-                                        yhat_te[val], s2_te[val], y_mean_te_site, y_var_te_site)
+            metrics_te_site = evaluate(np.array([z_sub[roi].values]).T,
+                                        yhat_te[idxs], s2_te[idxs], y_mean_te_site, y_var_te_site)
             
             df_site_metrics.loc[len(df_site_metrics)] = [
                                                             roi,
-                                                            site_names[int(key)],
+                                                            sites_dict[int(key)],
                                                             metrics_te_site['MSLL'][0],
                                                             metrics_te_site['EXPV'][0],
                                                             metrics_te_site['SMSE'][0],
@@ -180,6 +228,7 @@ if __name__ == "__main__":
     
     roi_dir = Path.cwd().parent / "data" / "roi_stats"
     roi_fnames = [fname for fname in sorted(os.listdir(roi_dir)) if fname.endswith(".csv")]
-
-    for roi_fname in roi_fnames:
-        estimate_norm_on_rois(roi_fname)
+    methods = ["hbr"]
+    for roi_fname in ["aparc_thickness_lh.csv"]:
+        for method in methods:
+            estimate_norm_on_rois(roi_fname, method, test_size=0.2, random_state=42)
