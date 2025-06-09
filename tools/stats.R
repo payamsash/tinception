@@ -5,35 +5,35 @@ library(readr)
 library(gtsummary)
 library(ggplot2)
 
-data <- read_csv("./data/tinception_master_ready_for_matching.csv")
+data <- read_csv("./material/behavioural/tinception_master_ready_for_matching.csv")
 data$group <- as.factor(data$group)
 data$sex <- as.factor(data$sex)
 data$site <- as.factor(data$site)
 
 ## matching
 match_out <- matchit(
-                    group ~ age + sex + site, 
+                    group ~ age + sex + site + PTA, 
                     data = data, 
-                    method = "nearest",
+                    method = "optimal",
                     distance = "glm"
                     )
 
 matched_data <- match.data(match_out) %>% 
     dplyr::filter(weights > 0)
 
-write.xlsx(matched_data, "./data/tinception_matched_optimal.xlsx")
-write_lines(unique(matched_data$`subject ID`), "./data/matched_subjects_optimal.txt")
+write.xlsx(matched_data, "./material/behavioural/tinception_matched_optimal.xlsx")
+write_lines(unique(matched_data$`subject ID`), "./material/behavioural/tinception_matched_optimal.txt")
 
 ## plotting
 quartz()
 plot(summary(match_out))
 plot(match_out, type = "jitter", interactive = FALSE)
 plot(match_out, type = "density", interactive = FALSE,
-                    which.xs = ~age + sex + site)
+                    which.xs = ~age + PTA + sex + site)
 
 ## stat summery
 summary_tbl <- matched_data %>%
-    select(group, age, sex, site) %>%
+    select(group, age, PTA, sex, site) %>%
     tbl_summary(
         by = group,  
         statistic = list(
