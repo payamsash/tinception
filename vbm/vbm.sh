@@ -78,8 +78,8 @@ done < "$ID_FILE"
 
 '''
 # cd $VBM_DIR
-# fslvbm_1_bet -b
-# fslvbm_2_template -n # for some data -R -f 0.6
+# fslvbm_1_bet -b # for some data -R -f 0.6
+# fslvbm_2_template -n 
 # fslvbm_3_proc
 
 # ## both cortical and subcortical

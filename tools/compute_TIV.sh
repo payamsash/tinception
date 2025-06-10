@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VBM_dir="/home/ubuntu/volume/VBM_n"
+VBM_dir="/home/ubuntu/volume/VBM"
 DATA_DIR=$VBM_dir/"struc"
 
 OUTPUT_FILE="tiv_results.txt"
