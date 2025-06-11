@@ -62,7 +62,7 @@ for hemi in "${hemis[@]}"; do
         for measure in "${measures[@]}"; do
             for dir in "$sbm_dir/results/$hemi.$measure.$smoothing.glmdir"; do
                 mri_glmfit-sim --glmdir $dir \
-                                --cache 1.3 abs \ 
+                                --cache 1.3 pos \ 
                                 --cwp 0.05 \
                                 --2spaces
             done

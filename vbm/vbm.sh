@@ -83,21 +83,17 @@ done < "$ID_FILE"
 # fslvbm_3_proc
 
 # ## both cortical and subcortical
-# nohup bash -c 'randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3 -d design_tiv.mat -t contrast_tiv.con -T -n 5000; \
-#                 randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2 -d design_tiv.mat -t contrast_tiv.con -T -n 5000; \
-#                 randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4 -d design_tiv.mat -t contrast_tiv.con -T -n 5000; \
-#                 randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2_80 -m subcortical_mask_thr80 -d design_tiv.mat -t contrast_tiv.con -T -n 5000; \
-#                 randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3_80 -m subcortical_mask_thr80 -d design_tiv.mat -t contrast_tiv.con -T -n 5000; \
-#                 randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4_80 -m subcortical_mask_thr80 -d design_tiv.mat -t contrast_tiv.con -T -n 5000' \
-#                 > out.log 2>&1 &
+nohup bash -c 'fslvbm_3_proc; \
+                cd stats; \
+                randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000; \
+                randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000' \
+                > out.log 2>&1 &
 
-# ## just using subcortical VBM
-# nohup bash -c 'randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2_80 -m subcortical_mask_thr80 -d design_tiv.mat -t contrast_tiv.con -T -n 5000; \
-#                 randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3_80 -m subcortical_mask_thr80 -d design_tiv.mat -t contrast_tiv.con -T -n 5000; \
-#                 randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4_80 -m subcortical_mask_thr80 -d design_tiv.mat -t contrast_tiv.con -T -n 5000' \
-#                 > out2.log 2>&1 &
-
-# fsleyes $FSLDIR/data/standard/MNI152_T1_2mm fslvbm_s3_80_tfce_corrp_tstat1 -cm red-yellow -dr 0.949 1
+# fsleyes $FSLDIR/data/standard/MNI152_T1_2mm fslvbm_s2_80_tfce_corrp_tstat1 -cm red-yellow -dr 0.949 1
 
 
 
