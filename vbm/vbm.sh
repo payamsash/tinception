@@ -83,9 +83,7 @@ done < "$ID_FILE"
 # fslvbm_3_proc
 
 # ## both cortical and subcortical
-nohup bash -c 'fslvbm_3_proc; \
-                cd stats; \
-                randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3 -d design.mat -t design.con -T -n 5000; \
+nohup bash -c 'randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3 -d design.mat -t design.con -T -n 5000; \
                 randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2 -d design.mat -t design.con -T -n 5000; \
                 randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4 -d design.mat -t design.con -T -n 5000; \
                 randomise -i GM_mod_merg_s2 -m GM_mask -o fslvbm_s2_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000; \
