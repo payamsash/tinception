@@ -76,5 +76,5 @@ surf_dir="/Applications/freesurfer/dev/subjects/fsaverage/surf"
 smoothing=10
 measure="thickness"
 mode="neg"
-freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/CO-TI/cache.th13.$mode.sig.cluster.mgh:overlay_threshold=1.3,10  \
-            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/CO-TI/cache.th13.$mode.sig.cluster.mgh:overlay_threshold=1.3,10
+freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-corr/sig.mgh:overlay_threshold=1.3,10  \
+            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/TI-CO-corr/sig.mgh:overlay_threshold=1.3,10
