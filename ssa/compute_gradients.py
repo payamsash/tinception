@@ -62,7 +62,7 @@ def compute_gradients(n_parcels, approach, n_components):
     np.save(ssa_directory / f"avg_connectome_co.npy", avg_connectome_co)
     np.save(ssa_directory / f"avg_connectome_ti.npy", avg_connectome_ti)
 
-
+## maybe add normalizations
 if __name__ == "__main__":
     for approach in ["dm", "pca"]:
         compute_gradients(
