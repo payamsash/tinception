@@ -42,15 +42,18 @@ def compute_gradients(n_parcels, approach, n_components):
         np.fill_diagonal(connectome, 1)
         connectomes.append(connectome)
 
+    reference = np.array(connectomes)[co_idxs].mean(axis=0)
 
     ## compute and align gradients
     gm = GradientMaps(
                         n_components=n_components,
                         approach=approach,
                         kernel=kernel,
-                        alignment='procrustes'
+                        alignment='procrustes',
+                        random_state=0
                         )
-    gm.fit(connectomes)
+    gm.fit(reference)
+    gm.fit(connectomes, reference=gm.aligned_)
 
     ## compute mean connectome per group
     avg_connectome_co = np.array(connectomes)[co_idxs].mean(axis=0)
@@ -58,7 +61,7 @@ def compute_gradients(n_parcels, approach, n_components):
 
     ## save the lambdas and gradients
     np.save(ssa_directory / f"lambda_{n_parcels}_{approach}.npy", gm.lambdas_)
-    np.save(ssa_directory / f"gradients_{n_parcels}_{approach}.npy", gm.gradients_)
+    np.save(ssa_directory / f"gradients_{n_parcels}_{approach}.npy", gm.aligned_)
     np.save(ssa_directory / f"avg_connectome_co.npy", avg_connectome_co)
     np.save(ssa_directory / f"avg_connectome_ti.npy", avg_connectome_ti)
 
