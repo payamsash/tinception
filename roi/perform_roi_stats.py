@@ -7,6 +7,8 @@ import pingouin as pg
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 
+# should come back here again
+
 def perform_roi_stats(roi, method="bonferroni", normalize=True):
 
     roi_dir = Path.cwd().parent / "data" / "roi_stats"
