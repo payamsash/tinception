@@ -24,6 +24,6 @@ for subj in "$SUBJECTS_DIR"/*; do
 
         echo "Converting $original_file to $output_file"
         mri_convert "$original_file" "$output_file"
-        
+        ((counter++))
     fi
 done
