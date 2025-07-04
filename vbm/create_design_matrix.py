@@ -2,10 +2,10 @@ from pathlib import Path
 import pandas as pd
 
 def main():
-    fname_master = Path.cwd().parent / "material" / "behavioural" / "tinception_matched_optimal.xlsx"
+    fname_master = Path.cwd().parent / "material" / "with_qc" / "behavioural" / "tinception_matched_optimal.xlsx"
     df = pd.read_excel(fname_master)
 
-    fname_tiv = Path.cwd().parent / "material" / "VBM" / "tiv_results.txt"
+    fname_tiv = Path.cwd().parent / "material" / "with_qc" / "VBM" / "tiv_results.txt"
     df_tiv = pd.read_csv(fname_tiv, delimiter='\t')
 
     df.drop(columns=['...1', 'distance', 'weights', 'subclass'], inplace=True)
@@ -22,10 +22,10 @@ def main():
     df['TIV'] = df['TIV'] - df['TIV'].mean()
 
     df = df[['group_CO', 'group_TI', 'sex', 'age', 'TIV', 'PTA', 'site_cogtail', 'site_karolinska', 'site_neuropren', 'site_talaska']]
-    df.to_csv(Path.cwd().parent / "material" / "VBM" / "design_with_PTA.txt", sep=' ', header=False, index=False)
+    df.to_csv(Path.cwd().parent / "material" / "with_qc" / "VBM" / "design.txt", sep=' ', header=False, index=False)
 
-    df = df[['group_CO', 'group_TI', 'sex', 'age', 'TIV', 'site_cogtail', 'site_karolinska', 'site_neuropren', 'site_talaska']]
-    df.to_csv(Path.cwd().parent / "material" / "VBM" / "design_without_PTA.txt", sep=' ', header=False, index=False)
+    # df = df[['group_CO', 'group_TI', 'sex', 'age', 'TIV', 'site_cogtail', 'site_karolinska', 'site_neuropren', 'site_talaska']]
+    # df.to_csv(Path.cwd().parent / "material" / "VBM" / "design_without_PTA.txt", sep=' ', header=False, index=False)
 
 if __name__ == "__main__":
     main()
