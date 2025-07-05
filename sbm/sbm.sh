@@ -73,8 +73,19 @@ done
 
 ## visualize
 surf_dir="/Applications/freesurfer/dev/subjects/fsaverage/surf"
+smoothing=5
+measure="thickness"
+mode="pos"
+freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-QC/cache.th13.$mode.sig.cluster.mgh  \
+            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/TI-CO-QC/cache.th13.$mode.sig.cluster.mgh
+
+## non significant
+surf_dir="/Applications/freesurfer/dev/subjects/fsaverage/surf"
 smoothing=10
 measure="thickness"
-mode="neg"
-freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-corr/sig.mgh:overlay_threshold=1.3,10  \
-            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/TI-CO-corr/sig.mgh:overlay_threshold=1.3,10
+mode="pos"
+freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-QC/sig.TI-CO-QC.mgh  \
+            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/TI-CO-QC/sig.TI-CO-QC.mgh
+
+freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-QC/z.mgh  \
+            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/TI-CO-QC/z.mgh
