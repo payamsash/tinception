@@ -87,5 +87,5 @@ mode="pos"
 freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-QC/sig.TI-CO-QC.mgh  \
             -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/TI-CO-QC/sig.TI-CO-QC.mgh
 
-freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-QC/z.mgh  \
-            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/TI-CO-QC/z.mgh
+freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/CO-TI-QC/z.mgh  \
+            -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/CO-TI-QC/z.mgh
