@@ -8,8 +8,8 @@ from brainspace.gradient import GradientMaps
 def compute_gradients(n_parcels, approach, n_components):
 
     ## get subjects list
-    fname_subjects = "/Users/payamsadeghishabestari/tinception/material/SBM/FSGD/tinception_fsgd_PTA.txt"
-    ssa_directory = Path("")
+    fname_subjects = "/home/ubuntu/volume/SBM/FSGD/tinception_fsgd_qc.txt"
+    ssa_directory = Path("/home/ubuntu/volume/SSA")
     kernel = None
 
 

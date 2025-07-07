@@ -16,16 +16,16 @@ def perform_roi_stats(roi, method="bonferroni", normalize=True):
     df = pd.read_csv(fname, index_col=0)
 
     ## select subjects
-    fname_cov = Path.cwd().parent / "material" / "no_talaska" / "behavioural" / "tinception_matched_optimal.xlsx"
+    fname_cov = Path.cwd().parent / "material" / "with_qc" / "behavioural" / "tinception_matched_optimal.xlsx"
     df_cov = pd.read_excel(fname_cov)
     df_cov.dropna(inplace=True)
     subjects = list(df_cov["subject ID"])
     df = df.query('subjects == @subjects')
 
-    fname_design = Path.cwd().parent / "material" / "no_talaska" / "VBM" / "design.txt"
-    df_design = pd.read_csv(fname_design, sep=" ", names=["A1", "A2", "sex", "age", "TIV", "PTA", "site_1", "site_2", "site_3"])
+    fname_design = Path.cwd().parent / "material" / "with_qc" / "VBM" / "design.txt"
+    df_design = pd.read_csv(fname_design, sep=" ", names=["A1", "A2", "sex", "age", "TIV", "PTA", "site_1", "site_2", "site_3", "site_4"])
 
-    ## add covariates
+    ## add covariates and demean
     df["sex"] = df_cov["sex"].values
     df["age"] = (df_cov["age"] - df_cov["age"].mean()).values
     df["site"] = df_cov["site"].values
@@ -44,6 +44,7 @@ def perform_roi_stats(roi, method="bonferroni", normalize=True):
     df['group'] = df['group'].astype('category')
     df['sex'] = df['sex'].astype('category')
     df['site'] = df['site'].astype('category')
+
 
     if roi.startswith("hippo"):
         regions = df.columns[1:-9] 
@@ -65,9 +66,6 @@ def perform_roi_stats(roi, method="bonferroni", normalize=True):
         'VIF': [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
     })
 
-
-    if normalize:
-        df[regions] = df[regions].div(df[roi_vol], axis=0)
 
     ## now the real part
     f_vals, df_groups, df_resids, p_vals, effect_sizes = ([] for _ in range(5))
