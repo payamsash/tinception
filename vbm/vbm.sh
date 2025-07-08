@@ -91,7 +91,7 @@ nohup bash -c 'randomise -i GM_mod_merg_s3 -m GM_mask -o fslvbm_s3 -d design.mat
                 randomise -i GM_mod_merg_s4 -m GM_mask -o fslvbm_s4_80 -m subcortical_mask_thr80 -d design.mat -t design.con -T -n 5000' \
                 > out.log 2>&1 &
 
-# fsleyes $FSLDIR/data/standard/MNI152_T1_2mm fslvbm_s3_80_tfce_corrp_tstat1 -cm red-yellow -dr 0.949 1
+# fsleyes $FSLDIR/data/standard/MNI152_T1_2mm fslvbm_s3_80_tfce_corrp_tstat2 -cm red-yellow -dr 0.949 1
 
 
 
