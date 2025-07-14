@@ -89,3 +89,56 @@ freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/TI-CO-QC
 
 freeview -f $surf_dir/lh.inflated:overlay=lh.$measure.$smoothing.glmdir/CO-TI-QC/z.mgh  \
             -f $surf_dir/rh.inflated:overlay=rh.$measure.$smoothing.glmdir/CO-TI-QC/z.mgh
+
+
+## in case I want to do the ROI analysis
+'''
+mri_annotation2label --subject fsaverage --hemi lh --annotation aparc --outdir ~/fsaverage_labels
+mri_annotation2label --subject fsaverage --hemi rh --annotation aparc --outdir ~/fsaverage_labels
+
+mri_mergelabels \
+    -i lh.transversetemporal.label \
+    -i lh.superiortemporal.label \
+    -i lh.middletemporal.label \
+    -i lh.inferiortemporal.label \
+    -i lh.bankssts.label \
+    -i lh.insula.label \
+    -i lh.entorhinal.label \
+    -i lh.parahippocampal.label \
+    -i lh.fusiform.label \
+    -i lh.temporalpole.label \
+    -i lh.precuneus.label \
+    -i lh.posteriorcingulate.label \
+    -i lh.medialorbitofrontal.label \
+    -i lh.lateralorbitofrontal.label \
+    -i lh.rostralanteriorcingulate.label \
+    -i lh.isthmuscingulate.label \
+    -i lh.superiorfrontal.label \
+    -i lh.parsorbitalis.label \
+    -o lh.ROIs.label
+
+mri_mergelabels \
+    -i rh.transversetemporal.label \
+    -i rh.superiortemporal.label \
+    -i rh.middletemporal.label \
+    -i rh.inferiortemporal.label \
+    -i rh.bankssts.label \
+    -i rh.insula.label \
+    -i rh.entorhinal.label \
+    -i rh.parahippocampal.label \
+    -i rh.fusiform.label \
+    -i rh.temporalpole.label \
+    -i rh.precuneus.label \
+    -i rh.posteriorcingulate.label \
+    -i rh.medialorbitofrontal.label \
+    -i rh.lateralorbitofrontal.label \
+    -i rh.rostralanteriorcingulate.label \
+    -i rh.isthmuscingulate.label \
+    -i rh.superiorfrontal.label \
+    -i rh.parsorbitalis.label \
+    -o rh.ROIs.label
+
+
+cd ~/fsaverage_labels
+mri_mergelabels -i lh.ROIs.label -i rh.ROIs.label -o combined_ROIs.label
+'''
