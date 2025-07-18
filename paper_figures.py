@@ -12,6 +12,10 @@ from nilearn.plotting import (plot_stat_map,
                                 plot_surf_contours
                                 )
 import nibabel.freesurfer.io as fsio
+from scipy.spatial import cKDTree
+from nilearn.datasets import fetch_surf_fsaverage
+from mne import read_labels_from_annot
+from mne.viz import Brain
 
 
 ############ VBM ############
@@ -117,6 +121,45 @@ for hemi, he in zip(["left", "right"], ["lh", "rh"]):
                                 facecolor=figure.figure.get_facecolor(),
                                 bbox_inches='tight')
             show()
+
+############ GLASSER atlas ############
+mni_coord = np.array([-41.1,  -65.3,   21.0])
+hemi = "lh"
+hemi_full = 'left'
+
+fsaverage_dir = Path("/Applications/freesurfer/dev/subjects/fsaverage")
+fsaverage = fetch_surf_fsaverage('fsaverage')
+surf_path = fsaverage['pial_' + hemi_full]
+coords = nib.load(surf_path).darrays[0].data  
+
+
+labels, ctab, names = fsio.read_annot(fsaverage_dir / "label" / f"{hemi}.HCPMMP1.annot")
+kdtree = cKDTree(coords)
+dist, vertex_idx = kdtree.query(mni_coord)
+label_index = labels[vertex_idx]
+label_id = ctab[label_index, -1]
+
+idx = np.where(ctab[:, -1] == label_id)[0]
+if len(idx) > 0:
+    region_name = names[idx[0]].decode('utf-8')
+else:
+    region_name = 'Unknown'
+
+print(f"Vertex {vertex_idx} maps to region: {region_name}")
+labels = read_labels_from_annot(subject="fsaverage", parc="HCPMMP1", verbose=False)
+
+brain = Brain(
+            "fsaverage",
+            hemi,
+            subjects_dir=None,
+            size=(800, 600),
+            background="white",
+            surf="pial_semi_inflated",
+            cortex=["#b8b4ac", "#b8b4ac"]
+            )
+# brain.add_annotation("HCPMMP1", color="grey")
+sel_label = [label for label in labels if label.name == f"{region_name}-{hemi}"][0]
+brain.add_label(sel_label, borders=True, color="blue")
 
 ############ ROI ############
 def load_freesurfer_lut_to_df(lut_path):
