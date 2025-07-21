@@ -1,21 +1,31 @@
+import os
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
 from matplotlib.patches import Patch
 import nibabel as nib
 from nilearn.plotting import (plot_stat_map,
-                                plot_glass_brain,
                                 plot_surf_stat_map,
                                 plot_roi,
-                                show,
-                                plot_surf_contours
+                                show
                                 )
 import nibabel.freesurfer.io as fsio
 from scipy.spatial import cKDTree
 from nilearn.datasets import fetch_surf_fsaverage
 from mne import read_labels_from_annot
 from mne.viz import Brain
+from matplotlib.colors import ListedColormap
+from neuromaps.datasets import fetch_fslr
+from surfplot import Plot
+from brainspace.datasets import load_parcellation
+from sklearn.manifold import MDS
+from brainspace.gradient import GradientMaps
+from brainspace.utils.parcellation import map_to_labels
+
+ssa_dir = Path("./material/with_qc/SSA")
 
 
 ############ VBM ############
@@ -38,12 +48,17 @@ kwargs = {
             "symmetric_cbar": False,
             "vmin": threshold,
             "vmax": 1,
-            "dim": 0.1
+            "dim": -0.3,
+            "black_bg": False
         }
 
-plot_stat_map(stat_map_img=fname_1, bg_img=bg_image_1, display_mode="xz", cut_coords=None, **kwargs) # CO > TI
-plot_stat_map(stat_map_img=fname_2, bg_img=bg_image_1, display_mode="x", cut_coords=(-18, -21, -24, -27, -30), **kwargs) # TI > CO
-plot_stat_map(stat_map_img=fname_2, bg_img=bg_image_1, display_mode="z", cut_coords=(-8, -4, 0, 4, 8), **kwargs) # TI > CO
+fig1 = plot_stat_map(stat_map_img=fname_1, bg_img=bg_image_1, display_mode="xz", cut_coords=None, **kwargs) # CO > TI
+fig2 = plot_stat_map(stat_map_img=fname_2, bg_img=bg_image_1, display_mode="x", cut_coords=(-18, -21, -24, -27, -30), **kwargs) # TI > CO
+fig3 = plot_stat_map(stat_map_img=fname_2, bg_img=bg_image_1, display_mode="z", cut_coords=(-8, -4, 0, 4, 8), **kwargs) # TI > CO
+
+for idx, fig in enumerate([fig1, fig2, fig3], start=1):
+    fig.savefig(ssa_dir.parent / "paper_figures" / "vbm" / f"Figure_{idx}.pdf",
+                    dpi=600, bbox_inches='tight')
 
 
 ############ SBM ############
