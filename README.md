@@ -33,8 +33,3 @@ Tinnitus is a heterogeneous condition lacking consistent neural markers across i
     source venv/bin/activate  # On Windows: .\env\Scripts\activate
     pip install -r requirements.txt
     ```
-### with Conda
-- Create and activate a Conda environment:
-   ```bash
-    conda env create -f environment.yml
-    conda activate rspv
