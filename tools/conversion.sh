@@ -74,4 +74,21 @@ cd $subjects_raw
 nohup bash -c 'ls *.nii | parallel --jobs 25 recon-all -s {.} -i {} -all' &
 
 
+
+###### INDITMS
+subjects_raw="/Volumes/Extreme_SSD/payam_data/MRI_indiTMS"
+dest_folder="/Volumes/Extreme_SSD/payam_data/MRI_indiTMS_nifti"
+cd "$subjects_raw" || exit
+for folder in */; do
+    dcm2niix "$folder"
+    folder_name="${folder%/}"
+
+    if [ -f "$nii_file" ]; then
+        mv $folder/"${folder_name}"_t1_MPRAGE*.nii "$dest_folder/${folder_name}.nii"
+    fi
+
+    find "$folder" -type f -delete
+done
+
+
 # nohup bash -c "ls *.nii.gz | parallel --jobs 42 'recon-all -s {= s/\.nii\.gz$// =} -i {} -all'" > recon_all.log 2>&1 &
