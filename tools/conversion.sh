@@ -83,5 +83,54 @@ for folder in */; do
     mv $folder/"${folder_name}"_t1_MPRAGE*.nii $dest_folder
 done
 
+##### TRIPLE
+BASE_DIR="/Users/payamsadeghishabestari/Downloads"
+OUT_DIR="$BASE_DIR/TRIPLE"
+mkdir -p "$OUT_DIR"
+
+for group in patients controls; do
+    GROUP_DIR="$BASE_DIR/$group"
+
+    for subj_dir in "$GROUP_DIR"/*; do
+        subj_id=$(basename "$subj_dir")
+
+        # --- controls structure ---
+        if [ "$group" == "controls" ]; then
+            nifti_dir="$subj_dir/nifti"
+            hdr_file=$(find "$nifti_dir" -maxdepth 1 -name "s${subj_id}_vbm.hdr" 2>/dev/null)
+        
+        # --- patient structure ---
+        elif [ "$group" == "patients" ]; then
+            nifti_dir="$subj_dir/pre/nifti"
+            hdr_file=$(find "$nifti_dir" -maxdepth 1 -name "s${subj_id}_pre-vbm.hdr" 2>/dev/null)
+        fi
+
+        # Process if .hdr file found
+        if [ -f "$hdr_file" ]; then
+            img_file="${hdr_file%.hdr}.img"
+            nii_file="$OUT_DIR/${subj_id}_${group}.nii.gz"
+
+            # Skip if already done
+            if [ -f "$nii_file" ]; then
+                echo "Skipping $nii_file (already exists)"
+                continue
+            fi
+
+            echo "Processing $subj_id ($group)..."
+
+            # Convert .hdr/.img → .nii (temporary)
+            fslchfiletype NIFTI "$hdr_file" /tmp/tmp_${subj_id}.nii
+
+            # Reorient to standard and save to TRIPLE folder
+            fslreorient2std /tmp/tmp_${subj_id}.nii "$nii_file"
+
+            # Remove temporary file
+            rm /tmp/tmp_${subj_id}.nii
+        else
+            echo "No .hdr found for $subj_id in expected location"
+        fi
+    done
+done
+
 
 # nohup bash -c "ls *.nii.gz | parallel --jobs 42 'recon-all -s {= s/\.nii\.gz$// =} -i {} -all'" > recon_all.log 2>&1 &
