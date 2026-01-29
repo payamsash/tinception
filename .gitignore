@@ -8,7 +8,6 @@
 **/.venv/
 
 # Jupyter Notebook checkpoints
-**/*.ipynb
 
 # IDE and editor files
 **/.vscode/
