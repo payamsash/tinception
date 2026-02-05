@@ -7,8 +7,6 @@
 **/env/
 **/.venv/
 
-# Jupyter Notebook checkpoints
-
 # IDE and editor files
 **/.vscode/
 **/.idea/
@@ -21,8 +19,8 @@
 **/.DS_Store
 **/Thumbs.db
 
-metadata/
-data/
-material/
-norm/
-
+# Ignore UKB data and master files
+src/ukb/data/**
+master_files/**
+!master_files/**/*.csv
+src/main/**.ipynb
