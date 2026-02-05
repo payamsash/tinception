@@ -97,3 +97,8 @@ counts = (
 print("\n************** SITE × GROUP COUNTS **************")
 print(f"{counts}")
 print("*************************************************\n")
+
+## save it
+df.to_csv(demographics_dir / "master.csv", index=False)
+
+######## check sex definition
