@@ -45,6 +45,8 @@ df["tinception_id"] = (
 
 ## drop missing vars and number checks
 df = df.dropna(subset=["age", "sex", "PTA"])
+df = df[df['sex'].isin([0, 1, '0', '1'])]
+
 def extract_subject_id(fname: str) -> str:
     name = fname.replace(".nii.gz", "")
     name = name.replace("sub-", "")
