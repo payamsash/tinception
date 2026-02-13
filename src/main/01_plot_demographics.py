@@ -2,6 +2,7 @@
 from pathlib import Path
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 ## read the file
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
@@ -29,17 +30,17 @@ xlim = [-5, 100]
 bw_adjust = 1
 for hue in hues:
         g = sns.FacetGrid(
-                    df_plot,
-                    row="site",
-                    hue=hue,
-                    aspect=3.5,
-                    height=1.6,
-                    palette=pal,
-                    row_order=site_names,
-                    xlim=xlim,
-                    sharex=True,
-                    sharey=False
-                    )
+                        df_plot,
+                        row="site",
+                        hue=hue,
+                        aspect=4.5,
+                        height=0.9,
+                        palette=pal,
+                        row_order=site_names,
+                        xlim=xlim,
+                        sharex=True,
+                        sharey=False
+                        )
         g.map(
                 sns.kdeplot,
                 "age",
@@ -47,7 +48,7 @@ for hue in hues:
                 clip_on=False,
                 clip=xlim,
                 fill=True,
-                alpha=0.7,
+                alpha=0.5,
                 linewidth=1.5
                 )
         g.map(
@@ -66,8 +67,10 @@ for hue in hues:
         g.add_legend(title="")
         g.set(yticks=[], ylabel="", xlabel=r"Age")
         g.despine(bottom=True, left=True)
+        g.fig.tight_layout()
         g.figure.savefig(saving_dir / f"{hue}_distribution.pdf", 
                         format="pdf",       
                         dpi=300,            
                         bbox_inches="tight"
                         )
+        
