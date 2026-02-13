@@ -10,22 +10,21 @@ site_base = {
             "andes":      1000,
             "antinomics": 2000,
             "cogtail":    3000,
-            "iccac":      4000,
-            "inditms":    5000,
-            "london_1":   6000,
-            "london_2":   7000,
-            "neuropren":  8000,
-            "new-castle": 9000,
-            "tinmeg":     10000,
-            "tinspect":   11000,
-            "triple":     12000,
+            "erlangen":   4000,
+            "iccac":      5000,
+            "inditms":    6000,
+            "london_1":   7000,
+            "london_2":   8000,
+            "neuropren":  9000,
+            "new-castle": 10000,
+            "tinmeg":     11000,
+            "tinspect":   12000,
+            "triple":     13000,
             }
 
 ## read and sort files
 dfs = []
 for fname in sorted(demographics_dir.iterdir()):
-    if fname.stem in ["andes_master", "antinomics_master"]:
-        continue
     if fname.suffix == ".xlsx":
         dfs.append(pd.read_excel(fname, dtype={"subject_ID": str}))
 
