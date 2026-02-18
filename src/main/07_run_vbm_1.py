@@ -11,7 +11,7 @@ vbm_struc_dir = vbm_dir / "struc"
 
 
 vbm_struc_dir.mkdir(parents=True, exist_ok=True)
-dry_run = False
+dry_run = True
 
 df = pd.read_csv(f"../../master_files/matched/matched_{match_method}.csv")
 sites = df["site"].unique()
