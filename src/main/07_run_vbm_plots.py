@@ -6,6 +6,7 @@ import seaborn as sns
 import nibabel as nib
 from nilearn import image
 from nilearn.plotting import plot_stat_map
+import matplotlib.pyplot as plt
 
 ############ VBM stat ############
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
@@ -20,6 +21,7 @@ img_fname =  vbm_dir / "fslvbm_s3_tfce_corrp_tstat2.nii.gz" # TI > CO
 
 p_thr = 0.005
 thr = 1 - p_thr
+'''
 kwargs = {
             "colorbar": True,
             "cbar_tick_format": "%.2g",
@@ -32,7 +34,8 @@ kwargs = {
             "vmin": thr,
             "vmax": 1,
             "dim": -0.3,
-            "black_bg": False
+            "black_bg": True,
+            "cut_coords": 3
         }
 for disp_mode in ["x", "y", "z"]:
 
@@ -43,7 +46,6 @@ for disp_mode in ["x", "y", "z"]:
                     **kwargs
                     )
     fig.savefig(plots_dir / f"Figure_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
-
 
 ############ VBM norm ############
 df = pd.read_csv(vbm_norm_dir / "norm_model_subcortical" / "results" / "Z_test.csv")
@@ -75,13 +77,12 @@ df_extreme = pd.DataFrame({
                 "Total_Dev": total_dev
                 }).T
 
-
 ## reconstruct
 data = df_extreme.iloc[3].values
 reconstructed_vol = np.zeros(mask_shape)
 reconstructed_vol[final_mask] = data
 output_nii = nib.Nifti1Image(reconstructed_vol, mask_affine)
-smoothed_nii = image.smooth_img(output_nii, fwhm=5)
+smoothed_nii = image.smooth_img(output_nii, fwhm=7)
 
 ## plot
 kwargs = {
@@ -91,11 +92,13 @@ kwargs = {
             "draw_cross": False,
             "radiological": False,
             "cmap": 'magma',
+            "threshold": 12,
             "symmetric_cbar": False,
-            "vmin": 2,
-            "vmax": 18,
+            "vmin": None,
+            "vmax": None,
             "dim": -0.3,
-            "black_bg": False
+            "black_bg": True,
+            "cut_coords": 3
         }
 
 for disp_mode in ["x", "y", "z"]:
@@ -106,8 +109,7 @@ for disp_mode in ["x", "y", "z"]:
                     **kwargs
                     )
     fig.savefig(plots_dir / f"Figure_norm_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
-
-
+'''
 ############ VBM boxplots ############
 ## getting co and ti idxs
 df = pd.read_csv(vbm_norm_dir / "covars.csv")
@@ -172,7 +174,7 @@ label_map = {
     3: "Subcallosal-LH"
 }
 df_plot['region'] = df_plot['cluster_id'].map(label_map)
-df_plot["group"] = df_plot["group"].map({"CO": "Control", "TI": "Tinnitus"})
+df_plot["group"] = df_plot["group"].map({"CO": "Tinnitus", "TI": "Control"}) # (I mistakenly swap 0 and 1 in vbm design matrix)
 df_plot.drop(columns="cluster_id", inplace=True)
 
 ## plotting 
@@ -186,7 +188,6 @@ g = sns.FacetGrid(
                 xlim=[0, 1],
                 height=1.8,
                 aspect=3
-                
                 )
 g.map_dataframe(
             sns.stripplot,
