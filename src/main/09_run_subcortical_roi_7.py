@@ -134,7 +134,7 @@ fig.savefig(
             bbox_inches="tight"
             )
 
-## --- ADVANCED PLOT 3: MANHATTAN PLOT (Statistical Significance) ---
+## manhattan plot
 df_stats['-log10p'] = -np.log10(df_stats['chi2_p'])
 df_stats['is_significant'] = df_stats['p_fdr'] < 0.05
 
@@ -148,23 +148,17 @@ df_stats['clean_region'] = (
 )
 
 fig, ax = plt.subplots(1, 1, figsize=(9, 3.5), layout="tight")
-# Plot non-significant in grey
+
 sns.scatterplot(data=df_stats[~df_stats['is_significant']], 
                 x='clean_region', y='-log10p', color='grey', alpha=0.5, s=100, ax=ax)
-# Plot significant (Pulvinar) in bright red
 sns.scatterplot(data=df_stats[df_stats['is_significant']], 
                 x='clean_region', y='-log10p', color='#d62728', s=200, edgecolor='black', ax=ax)
 
-# Add FDR threshold line (where p_fdr = 0.05)
-# Find the raw p-value that corresponds to fdr 0.05
+
 fdr_thresh = df_stats[df_stats['p_fdr'] <= 0.05]['chi2_p'].max()
 if not np.isnan(fdr_thresh):
     ax.axhline(-np.log10(fdr_thresh), color='black', linestyle='--', alpha=0.7, label='FDR < 0.05')
 
-# Label only the significant points
-# for i, row in df_stats[df_stats['is_significant']].iterrows():
-#     ax.text(row['clean_region'], row['-log10p'] + 0.1, row['clean_region'], 
-#             fontweight='bold', ha='center', color='#d62728')
 
 plt.setp(ax.get_xticklabels(), rotation=45, ha="right", fontsize=8)
 ax.set_ylabel("-log10(p-value)", fontweight='bold')
@@ -173,9 +167,8 @@ ax.set_ylim([-0.2, 3.5])
 sns.despine()
 fig.savefig(plots_dir / "rois" / f"{atlas_name}_manhattan_ukb.pdf", bbox_inches="tight")
 
-## --- ADVANCED PLOT 4: RAINFALL PLOT (Ratio of TI vs CO) ---
-# Calculate the Ratio: How many times more likely is an extreme in TI?
-df_stats['Ratio'] = df_stats['perc_TI'] / (df_stats['perc_CO'] + 0.1) # add small epsilon to avoid div by 0
+## rainfall plot
+df_stats['Ratio'] = df_stats['perc_TI'] / (df_stats['perc_CO'] + 0.1) 
 
 fig, ax = plt.subplots(1, 1, figsize=(9, 3.5), layout="tight")
 df_stats = df_stats.sort_values('Ratio', ascending=False)
