@@ -261,38 +261,69 @@ fig.savefig(
 ## umap plot
 tier_nums = [2, 3]
 regions = list(df_reliable.query('tier_num == @tier_nums')["label"].values)
-df_dev_tis = []
-for atlas_name in ["Amygdala", "Hippo", "Thalamic-nuclei"]:
-    tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
-    plots_dir = tinception_dir / "plots"
-    vbm_design = tinception_dir / "VBM_design"
 
-    threshold = 1.96
-    models_dir = tinception_dir / "subcortical_roi" / "new_norm_models"
-    fname = models_dir / atlas_name / "results" / f"Z_main.csv"
-    df_dev = pd.read_csv(fname)
-    df_master = pd.read_csv(vbm_design / "covars.csv")
-
-    df_dev.rename(columns={"subject_ids" : "tinception_id"}, inplace=True)
-
-    if atlas_name == "Thalamic-nuclei":
-        df_dev.drop(columns="Volume_of_Pf_right_hemisphere", inplace=True)
-
-    df_dev = df_dev.merge(
-                            df_master[["tinception_id", "group"]],
-                            on="tinception_id",
-                            how="inner"
-                            )
-
-    df_dev_ti = df_dev.query('group == "TI"').copy()
-    df_dev_ti.drop(columns=["observations", "tinception_id", "group"], inplace=True)
-
-    if atlas_name == "Thalamic-nuclei":
-        df_dev_ti.drop(columns="Volume_of_Whole_thalamus", inplace=True)
+def get_tinnitus_features(dataset="ukb", base_path="/Volumes/Extreme_SSD/payam_data/Tinception"):
+    base_path = Path(base_path)
     
-    df_dev_tis.append(df_dev_ti)
+    # 1. Define dataset-specific parameters
+    if dataset == "ukb":
+        config = {
+            "atlases": ["amygdalar_nuclei", "hippo_subfields", "thalamic_nuclei"],
+            "model_path": base_path / "subcortical_roi" / "norm_models_ukb",
+            "file": "Z_test.csv",
+            "id_col": "subject_ids",
+            "thalamus_atlas": "thalamic_nuclei"
+        }
+    else: # dataset == "main"
+        config = {
+            "atlases": ["Amygdala", "Hippo", "Thalamic-nuclei"],
+            "model_path": base_path / "subcortical_roi" / "new_norm_models",
+            "file": "Z_main.csv",
+            "id_col": "tinception_id",
+            "thalamus_atlas": "Thalamic-nuclei"
+        }
 
-df_dev_ti = pd.concat(df_dev_tis, axis=1)
+    df_tis = []
+    
+    # 2. Process each atlas
+    for atlas in config["atlases"]:
+        df = pd.read_csv(config["model_path"] / atlas / "results" / config["file"])
+        
+        # Identification Logic
+        if dataset == "ukb":
+            df_tr = pd.read_csv(config["model_path"] / atlas / "results" / "Z_train.csv")
+            df["group"] = df["subject_ids"].isin(df_tr["subject_ids"]).map({True: "CO", False: "TI"})
+        else:
+            df_master = pd.read_csv(base_path / "VBM_design" / "covars.csv")
+            df = df.rename(columns={"subject_ids": "tinception_id"}).merge(
+                df_master[["tinception_id", "group"]], on="tinception_id"
+            )
+
+        # Filter for Tinnitus group and drop non-feature metadata
+        ti_subset = df.query('group == "TI"').copy()
+        meta_cols = ["observations", "group", "subject_ids", "tinception_id"]
+        ti_subset.drop(columns=[c for c in meta_cols if c in ti_subset.columns], inplace=True)
+
+        # Atlas-specific cleanup
+        if atlas == config["thalamus_atlas"]:
+            bad_cols = ["Volume_of_Whole_thalamus", "Volume_of_Pf_right_hemisphere"]
+            ti_subset.drop(columns=[c for c in bad_cols if c in ti_subset.columns], inplace=True)
+
+        df_tis.append(ti_subset)
+
+    # 3. Horizontal Concatenation and Column Prettifying
+    full_df = pd.concat(df_tis, axis=1)
+    full_df.columns = (
+        full_df.columns
+        .str.removeprefix("Volume_of_")
+        .str.replace("_right_hemisphere$", "-rh", regex=True)
+        .str.replace("_left_hemisphere$", "-lh", regex=True)
+        .str.replace("_", "-", regex=False)
+    )
+    
+    return full_df
+
+df_dev_ti = get_tinnitus_features(dataset="ukb")
 df_dev_ti.columns = (
     df_dev_ti.columns
     .str.removeprefix("Volume_of_")  # remove prefix
