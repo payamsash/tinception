@@ -3,6 +3,15 @@ import subprocess
 import numpy as np
 import pandas as pd
 
+"""
+This script prepares VBM (voxel-based morphometry) data for statistical analysis.
+
+- Computes Total Intracranial Volume (TIV) for each subject from tissue probability maps.
+- Updates a covariate CSV file with TIV values.
+- Constructs an FSL-compatible design matrix and contrast files for group comparisons, adjusting for age, sex, site, PTA, and TIV.
+- Supports a dry-run mode to preview computations without writing files.
+"""
+
 # --- Configuration ---
 match_method = "optimal"
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
