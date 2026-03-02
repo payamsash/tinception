@@ -2,6 +2,16 @@ import os
 from pathlib import Path
 import pandas as pd
 
+"""
+This script prepares data for surface-based morphometry (SBM) analysis.
+
+- Checks that all subjects in the covariate CSV have corresponding FreeSurfer folders.
+- Verifies presence of qcache surface files for a specified FWHM and target.
+- Cleans and demeans covariates (age, PTA, TIV) for modeling.
+- Generates an FSGD (FreeSurfer Group Descriptor) file for group-level SBM analysis.
+- Creates contrast matrices for TI > CO and CO > TI comparisons.
+"""
+
 ## paths
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
 subjects_dir = tinception_dir / "subjects_fs_dir"
