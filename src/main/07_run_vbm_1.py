@@ -2,6 +2,15 @@ from pathlib import Path
 import shutil
 import pandas as pd
 
+"""
+This script organizes and copies VBM (voxel-based morphometry) MRI files 
+from site-specific directories into a centralized Tinception dataset structure. 
+
+- Task 1: Copies raw NIfTI files from each site to a central VBM folder using matched subject IDs.
+- Task 2: Copies structured VBM files (with specific suffixes) into a central `struc` folder, renaming them based on Tinception IDs.
+- Supports a dry-run mode to preview actions without copying files.
+"""
+
 # --- Configuration ---
 match_method = "optimal"
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
