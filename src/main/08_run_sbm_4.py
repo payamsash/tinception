@@ -7,6 +7,17 @@ import seaborn as sns
 import mne
 from mne.viz import Brain
 
+"""
+This script visualizes and statistically summarizes SBM (surface-based morphometry) results.
+
+- Loads cluster-wise cortical thickness data for significant TI > CO effects.
+- Generates strip + boxplots of cluster thickness by group (Controls vs. Tinnitus).
+- Renders lateral brain views with cluster overlays using MNE Brain objects.
+- Maps peak vertices to Destrieux atlas labels for anatomical identification.
+- Computes t-tests and Cohen's d for each cluster across groups.
+- Saves all figures (plots and brain images) to the designated plots directory.
+"""
+
 
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
 results_dir = tinception_dir / "SBM" / "results"
