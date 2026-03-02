@@ -1,5 +1,17 @@
 #!/bin/bash
 
+
+"""
+This bash script runs surface-based morphometry (SBM) analyses using FreeSurfer.
+
+- Sets up FreeSurfer environment and paths.
+- Preprocesses cortical measures (area, thickness) with `mris_preproc` for LH and RH hemispheres.
+- Performs GLM analysis (`mri_glmfit`) using FSGD design and contrast matrices.
+- Applies cluster-wise correction with `mri_glmfit-sim`.
+- Extracts cluster-wise summary statistics using `mri_segstats`.
+- Optional visualization of significant clusters using Freeview.
+"""
+
 ## set Paths
 export FREESURFER_HOME=/usr/local/freesurfer/8.0.0
 export SUBJECTS_DIR=/home/ubuntu/volume/Tinception/subjects_fs_dir
