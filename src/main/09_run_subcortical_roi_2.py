@@ -2,13 +2,15 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import pingouin as pg
-import seaborn as sns
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 
 def compute_stats(df, structure, covariates, fdr_method="fdr_bh", separate_hemi=None):
     
     df = df.query(f'structure == "{structure}"').copy()
+
+    if structure in ["aparc", "aparc2009s"]:
+        df["region"] = df["region"] + "-" + df["hemi"]
 
     if structure == "Hippo":
         df["region"] = df["region"] + "-" + df["hemi"]
@@ -58,7 +60,7 @@ def compute_stats(df, structure, covariates, fdr_method="fdr_bh", separate_hemi=
         vif_df["VIF"] = [variance_inflation_factor(vif_temp[vif_cols].values, i) for i in range(len(vif_cols))]
 
     ## compute ratio
-    df["ratio"] = df["total_struct_vol"] / df["TIV"]
+    # df["ratio"] = df["total_struct_vol"] / df["TIV"]
 
     results = []
     for reg in regions:
@@ -101,9 +103,6 @@ def compute_stats(df, structure, covariates, fdr_method="fdr_bh", separate_hemi=
         _, final_df['p_fdr'] = pg.multicomp(final_df['p_val'].values, method=fdr_method)
         final_df['Significant'] = final_df['p_fdr'] < 0.05
         final_df["structure"] = [structure] * len(final_df)
-
-        ## rename and order cols
-
         return final_df.sort_values('p_val'), vif_df
     
     return "No results found."
@@ -122,7 +121,18 @@ if __name__ == "__main__":
     missing_subjects = []
     completed_ids = []
     df_hs, df_as, df_ts = [], [], []
+    df_aparcs, df_aparc2s, df_asegs = [], [], []
     hemis = ["lh", "rh"]
+    aparc_names=['region', 'NumVert', 'SurfArea',
+                'volume', 'ThickAvg', 'ThickStd',
+                'MeanCurv', 'GausCurv', 'FoldInd', 'CurvInd'
+                ]
+    aseg_names = [
+            'Index', 'SegId',
+            'NVoxels', 'volume', 'region',
+            'normMean', 'normStdDev', 'normMin',
+            'normMax', 'normRange']
+
     for folder in sorted(subjects_dir.iterdir()):
         if folder.is_dir():
             subject_id = folder.name
@@ -139,9 +149,19 @@ if __name__ == "__main__":
                 mode_hippo = "T1"
 
             mri_dir = subjects_dir / subject_id / "mri"
+            stats_dir = subjects_dir / subject_id / "stats"
+            
+            ## subcortical regions
             hippo_file = mri_dir / f"lh.hippoSfVolumes-{mode_hippo}.v22.txt"
             amygdala_file = mri_dir / f"lh.amygNucVolumes-{mode_hippo}.v22.txt"
             thalamic_file = mri_dir / "ThalamicNuclei.v13.T1.volumes.txt"
+            
+            ## cortical regions
+            aparc_file_lh = stats_dir / "lh.aparc.stats"
+            aparc_file_rh = stats_dir / "rh.aparc.stats"
+            aparc2009_file_lh = stats_dir / "lh.aparc.a2009s.stats"
+            aparc2009_file_rh = stats_dir / "rh.aparc.a2009s.stats"
+            aseg_file = stats_dir / "aseg.stats"
 
             if not hippo_file.is_file():
                 print(f"missing hippo file for subject {subject_id} -> {tin_id}")
@@ -171,16 +191,57 @@ if __name__ == "__main__":
                 df_t["subject_ID"] = [subject_id] * len(df_t)
                 df_ts.append(df_t)
 
+            if not aparc_file_lh.is_file():
+                print(f"missing aparc file for subject {subject_id} -> {tin_id}")
+                missing_subjects.append(subject_id)
+            else:
+                # aparc
+                df_aps = []
+                for file, h in zip([aparc_file_lh, aparc_file_rh], ["lh", "rh"]):
+                    df_ap = pd.read_csv(file, comment="#", delim_whitespace=True, names=aparc_names)
+                    df_ap["subject_ID"] = [subject_id] * len(df_ap)
+                    df_ap["hemi"] = h
+                    df_aps.append(df_ap[["region", "volume", "subject_ID", "hemi"]])
+                df_aps = pd.concat(df_aps, axis=0)
+                df_aparcs.append(df_aps)
+
+
+                # aparc2009
+                df_ap2s = []
+                for file, h in zip([aparc2009_file_lh, aparc2009_file_rh], ["lh", "rh"]):
+                    df_ap2 = pd.read_csv(file, comment="#", delim_whitespace=True, names=aparc_names)
+                    df_ap2["subject_ID"] = [subject_id] * len(df_ap2)
+                    df_ap2["hemi"] = h
+                    df_ap2s.append(df_ap2[["region", "volume", "subject_ID", "hemi"]])
+                df_ap2s = pd.concat(df_ap2s, axis=0)
+                df_aparc2s.append(df_ap2s)
+
+                # aseg
+                df_aseg = pd.read_csv(aseg_file, comment="#", delim_whitespace=True, names=aseg_names)
+                df_aseg["subject_ID"] = [subject_id] * len(df_aseg)
+                df_aseg = df_aseg[~df_aseg["region"].str.endswith("hypointensities", na=False)]
+                df_asegs.append(df_aseg)
+
+            
+
 
     ## compute stats
     df_h = pd.concat(df_hs, axis=0)
     df_a = pd.concat(df_as, axis=0)
     df_t = pd.concat(df_ts, axis=0)
 
-    dfs = [df_h, df_a, df_t]    
+    df_ap = pd.concat(df_aparcs, axis=0)
+    df_ap2 = pd.concat(df_aparc2s, axis=0)
+    df_as = pd.concat(df_asegs, axis=0)
+
     df_h["structure"] = ["Hippo"] * len(df_h)
     df_a["structure"] = ["Amygdala"] * len(df_a)
     df_t["structure"] = ["Thalamic-nuclei"] * len(df_t)
+    df_ap["structure"] = ["aparc"] * len(df_ap)
+    df_ap2["structure"] = ["aparc2009s"] * len(df_ap2)
+    df_as["structure"] = ["aseg"] * len(df_as)
+
+    dfs = [df_h, df_a, df_t, df_ap, df_ap2, df_as]
     df = pd.concat(dfs, axis=0)
     df = pd.merge(df, df_master, on='subject_ID', how='left')
     subcortical_dir = tinception_dir / "subcortical_roi"
@@ -192,7 +253,7 @@ if __name__ == "__main__":
     
     df["TIV"] = df["TIV"] - df["TIV"].mean()
     df["PTA"] = df["PTA"] - df["PTA"].mean()
-    for structure in ["Hippo", "Amygdala", "Thalamic-nuclei"]:
+    for structure in ["Hippo", "Amygdala", "Thalamic-nuclei", "aparc", "aparc2009s", "aseg"]:
         df_stat, df_vif = compute_stats(
                                         df,
                                         structure,
