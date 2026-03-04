@@ -29,8 +29,6 @@ subject_ids = df_master['subject_ID'].values
 co_idxs = df_master[df_master["group"] == "CO"].index.to_list()
 ti_idxs = df_master[df_master["group"] == "TI"].index.to_list()
 
-
-
 ref_subject = "0539"
 ref_fname = ssa_dir / f"{ref_subject}_Schaefer2018_{n_parcels}Parcels_{n_network}Networks_order.csv"
 df_ref = pd.read_csv(ref_fname)
