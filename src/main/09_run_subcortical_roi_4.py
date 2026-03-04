@@ -13,17 +13,17 @@ def main(atlas_name):
     vbm_design = tinception_dir / "VBM_design"
 
     threshold = 1.96
-    models_dir = tinception_dir / "subcortical_roi" / "norm_models"
-    fname = models_dir / atlas_name / "results" / f"Z_test.csv"
+    models_dir = tinception_dir / "subcortical_roi" / "norm_models_ukb_main"
+    fname = models_dir / atlas_name / "results" / f"Z_main.csv"
     df_dev = pd.read_csv(fname)
     df_master = pd.read_csv(vbm_design / "covars.csv")
 
     if atlas_name == "Hippo":
-        df_dev.drop(columns=['Whole_hippocampus-lh', 'Whole_hippocampus-rh'], inplace=True)
+        df_dev.drop(columns=['Whole_hippocampus-lh', 'Whole_hippocampus-rh'], inplace=True, errors="ignore")
     if atlas_name == "Amygdala":
-        df_dev.drop(columns=['Whole_amygdala-lh', 'Whole_amygdala-rh'], inplace=True)
+        df_dev.drop(columns=['Whole_amygdala-lh', 'Whole_amygdala-rh'], inplace=True, errors="ignore")
     if atlas_name == "Thalamic-nuclei":
-        df_dev.drop(columns=['Right-Whole_thalamus', 'Left-Whole_thalamus'], inplace=True)   
+        df_dev.drop(columns=['Right-Whole_thalamus', 'Left-Whole_thalamus', 'Volume_of_Pf_right_hemisphere'], inplace=True, errors="ignore")   
 
     df_dev.rename(columns={"subject_ids" : "tinception_id"}, inplace=True)
     df_dev = df_dev.merge(
@@ -56,9 +56,8 @@ def main(atlas_name):
 
     df_stats = pd.DataFrame(results)
     df_stats['p_fdr'] = pg.multicomp(df_stats['chi2_p'].values, method='fdr_bh')[1]
-    df_stats.sort_values(by="p_fdr", ascending=True, inplace=True)
+    df_stats.sort_values(by="chi2_p", ascending=True, inplace=True)
     df_stats.reset_index(drop=True).to_csv(tinception_dir / "subcortical_roi" / "stats" / f"{atlas_name}_extreme.csv", index=False)
-    df_stats.sort_values(by="p_fdr", ascending=False, inplace=True)
 
     ## plot 1
     extreme_counts = (
@@ -156,6 +155,6 @@ def main(atlas_name):
                 )
 
 if __name__ == "__main__":
-    atlas_names = ["Hippo", "Amygdala", "Thalamic-nuclei"]
+    atlas_names = ["Amygdala", "Hippo", "Thalamic-nuclei"]
     for atlas in atlas_names:
         main(atlas)
