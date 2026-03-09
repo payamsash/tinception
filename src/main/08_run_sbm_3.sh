@@ -20,7 +20,7 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 hemis=("lh" "rh")
 smoothing_opts=("10")
-measures=("area" "thickness")
+measures=("area" "thickness" "volume" "sulc" "curv")
 sbm_dir="/home/ubuntu/volume/Tinception/SBM"
 
 ## Resampling (mris_preproc)
@@ -31,7 +31,7 @@ for hemi in "${hemis[@]}"; do
                         --cache-in ${measure}.fwhm${smoothing}.fsaverage \
                         --target fsaverage \
                         --hemi $hemi \
-                        --out $sbm_dir/results/${hemi}.${measure}.${smoothing}.mgh
+                        --out $sbm_dir/results_doss/${hemi}.${measure}.${smoothing}.mgh
         done
     done
 done
@@ -40,13 +40,13 @@ done
 for hemi in "${hemis[@]}"; do
     for smoothing in "${smoothing_opts[@]}"; do
         for measure in "${measures[@]}"; do
-            mri_glmfit --y $sbm_dir/results/$hemi.$measure.$smoothing.mgh \
-                        --fsgd $sbm_dir/FSGD/tinception.fsgd \
-                        --C $sbm_dir/FSGD/co_gt_ti.mtx \
-                        --C $sbm_dir/FSGD/ti_gt_co.mtx \
+            mri_glmfit --y $sbm_dir/results_doss/$hemi.$measure.$smoothing.mgh \
+                        --fsgd $sbm_dir/FSGD/tinception.fsgd doss \
+                        --C $sbm_dir/FSGD/co_gt_ti_doss.mtx \
+                        --C $sbm_dir/FSGD/ti_gt_co_doss.mtx \
                         --surf fsaverage $hemi \
                         --cortex \
-                        --glmdir $sbm_dir/results/$hemi.$measure.$smoothing.glmdir
+                        --glmdir $sbm_dir/results_doss/$hemi.$measure.$smoothing.glmdir
         done
     done
 done
@@ -55,9 +55,9 @@ done
 for hemi in "${hemis[@]}"; do
     for smoothing in "${smoothing_opts[@]}"; do
         for measure in "${measures[@]}"; do
-            current_glmdir="$sbm_dir/results/$hemi.$measure.$smoothing.glmdir"
+            current_glmdir="$sbm_dir/results_doss/$hemi.$measure.$smoothing.glmdir"
             mri_glmfit-sim --glmdir $current_glmdir \
-                            --cache 2.0 pos \
+                            --cache 2.3 pos \
                             --cwp 0.05 \
                             --2spaces
         done
