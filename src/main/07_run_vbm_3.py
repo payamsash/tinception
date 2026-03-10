@@ -15,14 +15,10 @@ This script prepares VBM (voxel-based morphometry) data for statistical analysis
 # --- Configuration ---
 match_method = "optimal"
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
-vbm_sites_dir = tinception_dir / "vbm_per_site"
 vbm_dir = tinception_dir / "VBM"
 design_dir = tinception_dir / "VBM_design"
 vbm_struc_dir = vbm_dir / "struc"
-
-
 vbm_struc_dir.mkdir(parents=True, exist_ok=True)
-dry_run = True
 
 df = pd.read_csv(f"../../master_files/matched/matched_{match_method}.csv")
 sites = df["site"].unique()
@@ -73,11 +69,13 @@ df['TIV'] = tiv_list
 df.to_csv(design_dir / "covars.csv", index=False)
 print(f"\nDone! TIV added to {design_dir}")
 
-
 print("\n********** Creating design and contrast files ***********\n")
-
 ## create the design.mat and design.con file
 df = pd.read_csv(design_dir / "covars.csv")
+
+## drop problematic subjects:
+# subjects_to_drop = ["sub-07006", "sub-08016", "sub-09021", "sub-10015", "sub-10017", "sub-10025"]
+# df = df.query('tinception_id != @subjects_to_drop')
 existing_ids = [f.name.split('_')[0] for f in vbm_struc_dir.glob("*_struc.nii.gz")]
 df = df[df['tinception_id'].astype(str).isin(existing_ids)]
 df = df.sort_values("tinception_id").reset_index(drop=True)
