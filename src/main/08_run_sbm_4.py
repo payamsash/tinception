@@ -20,7 +20,7 @@ This script visualizes and statistically summarizes SBM (surface-based morphomet
 
 
 tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
-results_dir = tinception_dir / "SBM" / "results"
+results_dir = tinception_dir / "SBM" / "results_doss"
 plots_dir = tinception_dir / "plots" / "sbm"
 df_master = pd.read_csv(tinception_dir / "vbm_norm" / "covars.csv")
 
@@ -31,14 +31,14 @@ df_master = df_master[~df_master['subject_ID'].isin(subjects_to_drop)]
 ## find significant clusters and create a df
 smoothing = 10
 measure = "thickness"
-mode = "ti_gt_co"
+mode = "ti_gt_co_doss"
 hemis = ["lh", "rh"]
 path_dict = dict(zip(hemis, [[], []]))
 dfs = []
 for hemi in hemis:
     for idx in range(1, 4):
         txt_dir = results_dir / f"{hemi}.{measure}.{smoothing}.glmdir" / mode / f"{hemi}.cluster{idx}.txt"
-        summery_dir = results_dir / f"{hemi}.{measure}.{smoothing}.glmdir" / mode / "cache.th20.pos.sig.cluster.summary"
+        summery_dir = results_dir / f"{hemi}.{measure}.{smoothing}.glmdir" / mode / "cache.th23.pos.sig.cluster.summary"
         if txt_dir.is_file():
             path_dict[hemi].append(txt_dir)
             df = pd.read_csv(txt_dir, header=None)
@@ -47,6 +47,7 @@ for hemi in hemis:
             df["cluster_idx"] = len(df) * [idx]
             df["group"] = df_master["group"]
             dfs.append(df)
+            print(df)
 
 df_thickness = pd.concat(dfs, axis=0)
 df_thickness["group"] = df_thickness["group"].map({"CO": "Controls", "TI": "Tinnitus"})
@@ -93,10 +94,10 @@ g.map_dataframe(
 g.despine(left=True)
 g.set(yticks=[])
 g.add_legend(loc="upper right", bbox_to_anchor=(0.9, 1))
-g.axes[2, 0].remove()
+# g.axes[2, 0].remove()
 g.tight_layout()
 g.savefig(
-        plots_dir / "boxplots.pdf",
+        plots_dir / "doss.pdf",
         format="pdf",
         dpi=300,
         bbox_inches="tight"
@@ -111,7 +112,7 @@ parc = "aparc.a2009s"
 brain_scrs = []
 for hemi in ["rh", "lh"]:
     ## cluster corrected
-    fname = results_dir / f"{hemi}.{measure}.{smoothing}.glmdir" / mode / f"cache.th20.pos.sig.ocn.annot"
+    fname = results_dir / f"{hemi}.{measure}.{smoothing}.glmdir" / mode / f"cache.th23.pos.sig.ocn.annot"
     brain = Brain("fsaverage", subjects_dir=None, hemi=hemi, views=view, **brain_kwargs)
     brain.add_annotation(str(fname), hemi=hemi, borders=False, color="#C5A059", alpha=alpha)
     brain.add_annotation(parc, borders=True, color="white")
@@ -125,7 +126,7 @@ for ax, brain in zip(axes, brain_scrs):
     ax.axis("off")
         
 fig.savefig(
-            plots_dir / f"brain.pdf",
+            plots_dir / f"brain_doss.pdf",
             format="pdf",
             dpi=300,
             bbox_inches="tight")
@@ -147,8 +148,8 @@ def get_detailed_label(hemi, vertex_index):
     return "Label not found"
 
 peaks = {
-    'lh': [86151, 40295],
-    'rh': [87022, 112526, 114571]
+    'lh': [],
+    'rh': [126390]
 }
 print(f"{'Hemi':<5} | {'Vertex':<8} | {'Destrieux Label'}")
 print("-" * 40)
