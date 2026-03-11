@@ -13,7 +13,6 @@ vbm_norm_dir = tinception_dir / "vbm_norm"
 sbm_norm_dir = tinception_dir / "sbm_norm"
 
 ############# VBM
-
 ## read mask images
 img_bg = fsl_dir / "data" / "standard" / "MNI152_T1_0.5mm.nii.gz"
 mask_img = nib.load(vbm_norm_dir / 'GM_mask.nii.gz')
@@ -81,7 +80,6 @@ plt.subplots_adjust(hspace=0.05, left=0.15)
 output_file = tinception_dir / "plots" / "VBM_Normative_Metrics_Final.pdf"
 plt.savefig(output_file, dpi=600, bbox_inches='tight')
 plt.show()
-
 
 ############## SBM
 
@@ -164,5 +162,5 @@ plt.subplots_adjust(
     wspace=-0.35,   # controls lh–rh distance
     hspace=-0.15
 )
-plt.savefig(sbm_norm_dir / "plots" / "SBM_Normative_Metrics.pdf", dpi=600, bbox_inches='tight')
+plt.savefig(tinception_dir / "plots" / "SBM_Normative_Metrics.pdf", dpi=600, bbox_inches='tight')
 plt.show()
