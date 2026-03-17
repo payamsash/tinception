@@ -73,22 +73,22 @@ field_name="ukb23149"
 
 for chr in {1..22}; do
     run_plink_wes="plink2 --bfile ${field_name}_c${chr}_b0_v1 \
-      --no-pheno --keep pheno_case_control.tsv --autosome \
-      --maf 0.01 --mac 20 --geno 0.1 --hwe 1e-15 --mind 0.1 \
-      --write-snplist --write-samples --no-id-header \
-      --out WES_c${chr}_snps_qc_pass"
+        --no-pheno --keep pheno_case_control.tsv --autosome \
+        --maf 0.01 --mac 20 --geno 0.1 --hwe 1e-15 --mind 0.1 \
+        --write-snplist --write-samples --no-id-header \
+        --out WES_c${chr}_snps_qc_pass"
 
-    dx run swiss-army-knife \
-      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bed" \
-      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bim" \
-      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.fam" \
-      -iin="${pheno_dir}/pheno_case_control.tsv" \
-      -icmd="${run_plink_wes}" \
-      --tag="Step2_QC" \
-      --name "QC_WES_chr${chr}" \
-      --instance-type "mem1_ssd1_v2_x16" \
-      --destination="${data_file_dir}/" \
-      --brief --yes
+        dx run swiss-army-knife \
+        -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bed" \
+        -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bim" \
+        -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.fam" \
+        -iin="${pheno_dir}/pheno_case_control.tsv" \
+        -icmd="${run_plink_wes}" \
+        --tag="Step2_QC" \
+        --name "QC_WES_chr${chr}" \
+        --instance-type "mem1_ssd1_v2_x16" \
+        --destination="${data_file_dir}/" \
+        --brief --yes
 done
 
 
@@ -100,25 +100,51 @@ field_name="ukb23149"
 
 for chr in {1..22}; do
     run_regenie_cmd="regenie --step 2 --bed ${field_name}_c${chr}_b0_v1 --out tinnitus_assoc.c${chr} \
-      --phenoFile pheno_case_control.tsv --covarFile covariates_case_control_with_srt.tsv \
-      --bt --approx --firth-se --firth --extract WES_c${chr}_snps_qc_pass.snplist \
-      --phenoCol tin_status \
-      --covarCol age --covarCol genotype --covarCol srt \
-      --covarCol PC_1 --covarCol PC_2 --covarCol PC_3 --covarCol PC_4 --covarCol PC_5 \
-      --covarCol PC_6 --covarCol PC_7 --covarCol PC_8 --covarCol PC_9 --covarCol PC_10 \
-      --pred tinnitus_results_pred.list --bsize 200 \
-      --pThresh 0.05 --minMAC 3 --threads 16 --gz"
+        --phenoFile pheno_case_control.tsv --covarFile covariates_case_control_with_srt.tsv \
+        --bt --approx --firth-se --firth --extract WES_c${chr}_snps_qc_pass.snplist \
+        --phenoCol tin_status \
+        --covarCol age --covarCol genotype --covarCol srt \
+        --covarCol PC_1 --covarCol PC_2 --covarCol PC_3 --covarCol PC_4 --covarCol PC_5 \
+        --covarCol PC_6 --covarCol PC_7 --covarCol PC_8 --covarCol PC_9 --covarCol PC_10 \
+        --pred tinnitus_results_pred.list --bsize 200 \
+        --pThresh 0.05 --minMAC 3 --threads 16 --gz"
 
-    dx run swiss-army-knife \
-      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bed" \
-      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bim" \
-      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.fam" \
-      -iin="${data_file_dir}/WES_c${chr}_snps_qc_pass.snplist" \
-      -iin="${pheno_dir}/pheno_case_control.tsv" \
-      -iin="${pheno_dir}/covariates_case_control_with_srt.tsv" \
-      -iin="${data_file_dir}/tinnitus_results_pred.list" \
-      -iin="${data_file_dir}/tinnitus_results_1.loco.gz" \
-      -icmd="${run_regenie_cmd}" --tag="Step2_Assoc" --instance-type "mem1_ssd1_v2_x16" \
-      --name "regenie_step2_chr${chr}" \
-      --destination="${data_file_dir}/" --brief --yes
+        dx run swiss-army-knife \
+        -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bed" \
+        -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bim" \
+        -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.fam" \
+        -iin="${data_file_dir}/WES_c${chr}_snps_qc_pass.snplist" \
+        -iin="${pheno_dir}/pheno_case_control.tsv" \
+        -iin="${pheno_dir}/covariates_case_control_with_srt.tsv" \
+        -iin="${data_file_dir}/tinnitus_results_pred.list" \
+        -iin="${data_file_dir}/tinnitus_results_1.loco.gz" \
+        -icmd="${run_regenie_cmd}" --tag="Step2_Assoc" --instance-type "mem1_ssd1_v2_x16" \
+        --name "regenie_step2_chr${chr}" \
+        --destination="${data_file_dir}/" --brief --yes
 done
+
+
+#############
+merge_cmd='out_file="tinnitus_assoc_merged.txt"
+  cp /mnt/project/GWAS/results/*.regenie.gz .
+  gunzip *.regenie.gz
+  echo -e "CHROM\tGENPOS\tID\tALLELE0\tALLELE1\tA1FREQ\tN\tTEST\tBETA\tSE\tCHISQ\tLOG10P\tEXTRA" > $out_file
+  files="./*.regenie"
+for f in $files
+do
+    tail -n+2 $f | tr " " "\t" >> $out_file
+done
+
+rm *.regenie'
+
+# Define your data directory
+data_file_dir="/GWAS/results"
+
+# Execute the merge
+dx run swiss-army-knife \
+    -iin="${data_file_dir}/tinnitus_assoc.c1_tin_status.regenie.gz" \
+    -icmd="${merge_cmd}" \
+    --tag="Final_Merge" \
+    --instance-type "mem1_ssd1_v2_x16" \
+    --destination="${data_file_dir}" \
+    --brief --yes
