@@ -66,3 +66,30 @@ dx run swiss-army-knife \
     --brief --yes
 
 #############
+exome_file_dir="/Bulk/Exome sequences/Population level exome OQFE variants, PLINK format - interim 450k release/"
+data_file_dir="/GWAS/results"
+pheno_dir="/GWAS/main"
+field_name="ukb23149"
+
+for chr in {1..22}; do
+    run_plink_wes="plink2 --bfile ${field_name}_c${chr}_b0_v1 \
+      --no-pheno --keep pheno_case_control.tsv --autosome \
+      --maf 0.01 --mac 20 --geno 0.1 --hwe 1e-15 --mind 0.1 \
+      --write-snplist --write-samples --no-id-header \
+      --out WES_c${chr}_snps_qc_pass"
+
+    dx run swiss-army-knife \
+      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bed" \
+      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bim" \
+      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.fam" \
+      -iin="${pheno_dir}/pheno_case_control.tsv" \
+      -icmd="${run_plink_wes}" \
+      --tag="Step2_QC" \
+      --name "QC_WES_chr${chr}" \
+      --instance-type "mem1_ssd1_v2_x16" \
+      --destination="${data_file_dir}/" \
+      --brief --yes
+done
+
+
+#############
