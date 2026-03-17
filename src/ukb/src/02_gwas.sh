@@ -93,3 +93,32 @@ done
 
 
 #############
+exome_file_dir="/Bulk/Exome sequences/Population level exome OQFE variants, PLINK format - interim 450k release/"
+data_file_dir="/GWAS/results"
+pheno_dir="/GWAS/main"
+field_name="ukb23149"
+
+for chr in {1..22}; do
+    run_regenie_cmd="regenie --step 2 --bed ${field_name}_c${chr}_b0_v1 --out tinnitus_assoc.c${chr} \
+      --phenoFile pheno_case_control.tsv --covarFile covariates_case_control_with_srt.tsv \
+      --bt --approx --firth-se --firth --extract WES_c${chr}_snps_qc_pass.snplist \
+      --phenoCol tin_status \
+      --covarCol age --covarCol genotype --covarCol srt \
+      --covarCol PC_1 --covarCol PC_2 --covarCol PC_3 --covarCol PC_4 --covarCol PC_5 \
+      --covarCol PC_6 --covarCol PC_7 --covarCol PC_8 --covarCol PC_9 --covarCol PC_10 \
+      --pred tinnitus_results_pred.list --bsize 200 \
+      --pThresh 0.05 --minMAC 3 --threads 16 --gz"
+
+    dx run swiss-army-knife \
+      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bed" \
+      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.bim" \
+      -iin="${exome_file_dir}/${field_name}_c${chr}_b0_v1.fam" \
+      -iin="${data_file_dir}/WES_c${chr}_snps_qc_pass.snplist" \
+      -iin="${pheno_dir}/pheno_case_control.tsv" \
+      -iin="${pheno_dir}/covariates_case_control_with_srt.tsv" \
+      -iin="${data_file_dir}/tinnitus_results_pred.list" \
+      -iin="${data_file_dir}/tinnitus_results_1.loco.gz" \
+      -icmd="${run_regenie_cmd}" --tag="Step2_Assoc" --instance-type "mem1_ssd1_v2_x16" \
+      --name "regenie_step2_chr${chr}" \
+      --destination="${data_file_dir}/" --brief --yes
+done
