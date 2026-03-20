@@ -1,7 +1,6 @@
 from pathlib import Path
 import pandas as pd
 import seaborn as sns
-from tqdm import tqdm
 from nilearn import image, plotting
 from nilearn.glm.second_level import SecondLevelModel
 from nilearn.glm import threshold_stats_img
@@ -20,7 +19,7 @@ sites = [
         "triple"
 ]
 dfs = []
-for site in tqdm(sites):
+for site in sites:
     fname = demographics_dir / f"{site}_master.xlsx"
     dfs.append(pd.read_excel(fname, dtype={"subject_ID": str}))
 
@@ -212,25 +211,32 @@ thresholded_co_gt_ti, threshold_co_gt_ti = threshold_stats_img(
 
 fsl_dir = Path("/Users/payamsadeghishabestari/fsl")
 img_bg = fsl_dir / "data" / "standard" / "MNI152_T1_0.5mm.nii.gz"
-kwargs = {
-            "colorbar": False,
-            "cbar_tick_format": "%.2g",
-            "annotate": False,
-            "draw_cross": False,
-            "radiological": False,
-            "cmap": 'Reds',
-            "threshold": threshold_co_gt_ti,
-            "symmetric_cbar": False,
-            "vmin": None,
-            "vmax": None,
-            "dim": -0.3,
-            "black_bg": True,
-            "cut_coords": (-13.35, 24.13, -16.7)
-        }
-fig = plotting.plot_stat_map(
-            stat_map_img=thresholded_co_gt_ti,
-            bg_img=img_bg,
-            display_mode="ortho",
-            **kwargs
-            )
-fig.savefig(tinception_dir / "plots" / "vbm" / f"vbm_pta_hf.pdf", dpi=600, bbox_inches='tight')
+
+for sel_image, thr, coord, title in zip(
+                                [thresholded_co_gt_ti, thresholded_ti_gt_co],
+                                [threshold_co_gt_ti, threshold_ti_gt_co],
+                                [(-13.35, 24.13, -16.7), (-24.95, 3.01, -10.14)],
+                                ["co_gt_ti", "ti_gt_co"]
+                                ):
+    kwargs = {
+                "colorbar": False,
+                "cbar_tick_format": "%.2g",
+                "annotate": False,
+                "draw_cross": False,
+                "radiological": False,
+                "cmap": 'Reds',
+                "threshold": thr,
+                "symmetric_cbar": False,
+                "vmin": None,
+                "vmax": None,
+                "dim": -0.3,
+                "black_bg": True,
+                "cut_coords": coord
+            }
+    fig = plotting.plot_stat_map(
+                stat_map_img=sel_image,
+                bg_img=img_bg,
+                display_mode="ortho",
+                **kwargs
+                )
+    fig.savefig(tinception_dir / "plots" / "vbm_group" / f"{title}_pta_hf.pdf", dpi=600, bbox_inches='tight')
