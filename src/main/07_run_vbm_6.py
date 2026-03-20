@@ -23,7 +23,7 @@ tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
 fsl_dir = Path("/Users/payamsadeghishabestari/fsl")
 vbm_dir = tinception_dir / "vbm_results"
 vbm_norm_dir = tinception_dir / "vbm_norm"
-plots_dir = tinception_dir / "plots" / "vbm"
+plots_dir = tinception_dir / "plots"
 plots_dir.mkdir(exist_ok=True)
 
 img_bg = fsl_dir / "data" / "standard" / "MNI152_T1_0.5mm.nii.gz"
@@ -55,70 +55,8 @@ for disp_mode in ["x", "y", "z"]:
                     display_mode=disp_mode,
                     **kwargs
                     )
-    fig.savefig(plots_dir / f"Figure_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
+    fig.savefig(plots_dir / "vbm_group" / f"ti_gt_co_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
 
-############ VBM norm ############
-df = pd.read_csv(vbm_norm_dir / "norm_model_subcortical" / "results" / "Z_test.csv")
-img_bg = fsl_dir / "data" / "standard" / "MNI152_T1_0.5mm.nii.gz"
-
-mask_path = vbm_norm_dir / 'GM_mask.nii.gz'
-subcortical_mask_path = vbm_norm_dir / 'subcortical_mask_thr80.nii.gz'
-
-mask_img = nib.load(mask_path)
-mask_affine = mask_img.affine
-mask_shape = mask_img.shape
-
-mask1 = mask_img.get_fdata() > 0
-mask2 = nib.load(subcortical_mask_path).get_fdata() > 0
-final_mask = mask1 & mask2  
-
-## read deviation scores
-subject_ids = df["subject_ids"].values
-df.drop(columns=["observations", "subject_ids"], inplace=True)
-thr = 1.96
-average_dev = df.mean(axis=0)
-large_dev = (df > thr).sum(axis=0)
-small_dev = (df < -thr).sum(axis=0)
-total_dev = large_dev + small_dev
-df_extreme = pd.DataFrame({
-                "Average_Dev": average_dev,
-                "Large_Dev": large_dev,
-                "Small_Dev": small_dev,
-                "Total_Dev": total_dev
-                }).T
-
-## reconstruct
-data = df_extreme.iloc[3].values
-reconstructed_vol = np.zeros(mask_shape)
-reconstructed_vol[final_mask] = data
-output_nii = nib.Nifti1Image(reconstructed_vol, mask_affine)
-smoothed_nii = image.smooth_img(output_nii, fwhm=7)
-
-## plot
-kwargs = {
-            "colorbar": True,
-            "cbar_tick_format": "%.2g",
-            "annotate": False,
-            "draw_cross": False,
-            "radiological": False,
-            "cmap": 'magma',
-            "threshold": 12,
-            "symmetric_cbar": False,
-            "vmin": None,
-            "vmax": None,
-            "dim": -0.3,
-            "black_bg": True,
-            "cut_coords": 3
-        }
-
-for disp_mode in ["x", "y", "z"]:
-    fig = plot_stat_map(
-                    stat_map_img=smoothed_nii,
-                    bg_img=img_bg,
-                    display_mode=disp_mode,
-                    **kwargs
-                    )
-    fig.savefig(plots_dir / f"Figure_norm_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
 
 ############ VBM boxplots ############
 ## getting co and ti idxs
@@ -180,11 +118,11 @@ for cluster_id in range(1, num_clusters + 1):
 df_plot = pd.concat(df_plots, axis=0)
 label_map = {
     1: "Uvula-RH",
-    2: "Subcallosal-RH",
-    3: "Subcallosal-LH"
+    2: "Putamen-RH",
+    3: "Putamen-LH"
 }
 df_plot['region'] = df_plot['cluster_id'].map(label_map)
-df_plot["group"] = df_plot["group"].map({"CO": "Tinnitus", "TI": "Control"}) # (I mistakenly swap 0 and 1 in vbm design matrix)
+df_plot["group"] = df_plot["group"].map({"CO": "Control", "TI": "Tinnitus"})
 df_plot.drop(columns="cluster_id", inplace=True)
 
 ## plotting 
@@ -239,8 +177,101 @@ for ax, pval, tval, cohen in zip(g.axes.flat, peak_ps, peak_ts, cohen_ds):
     ax.set_title(new_title, fontstyle='italic', fontsize=8)
 
 g.savefig(
-        plots_dir / "boxplots.pdf",
+        plots_dir / "vbm_group" / "boxplots_ti_gt_co.pdf",
         format="pdf",
         dpi=300,
         bbox_inches="tight"
         )
+
+
+#### plot effect map ####
+img_fname =  vbm_dir / "d_map.nii.gz" # TI < CO
+img_pos = image.math_img("img * (img > 0)", img=img_fname)
+
+kwargs = {
+            "colorbar": True,
+            "cbar_tick_format": "%.2g",
+            "annotate": False,
+            "draw_cross": False,
+            "radiological": False,
+            "cmap": 'autumn',
+            "symmetric_cbar": False,
+            "threshold": 1e-6,
+            "dim": -0.3,
+            "black_bg": True,
+            "cut_coords": 3
+        }
+for disp_mode in ["x", "y", "z"]:
+
+    fig = plot_stat_map(
+                    stat_map_img=img_pos,
+                    bg_img=img_bg,
+                    display_mode=disp_mode,
+                    **kwargs
+                    )
+    fig.savefig(plots_dir / "vbm_group" / f"co_gt_ti_effect_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
+
+'''
+############ VBM norm (average deviations) ############
+df = pd.read_csv(vbm_norm_dir / "norm_model_subcortical" / "results" / "Z_test.csv")
+img_bg = fsl_dir / "data" / "standard" / "MNI152_T1_0.5mm.nii.gz"
+
+mask_path = vbm_norm_dir / 'GM_mask.nii.gz'
+subcortical_mask_path = vbm_norm_dir / 'subcortical_mask_thr80.nii.gz'
+
+mask_img = nib.load(mask_path)
+mask_affine = mask_img.affine
+mask_shape = mask_img.shape
+
+mask1 = mask_img.get_fdata() > 0
+mask2 = nib.load(subcortical_mask_path).get_fdata() > 0
+final_mask = mask1 & mask2  
+
+## read deviation scores
+subject_ids = df["subject_ids"].values
+df.drop(columns=["observations", "subject_ids"], inplace=True)
+thr = 1.96
+average_dev = df.mean(axis=0)
+large_dev = (df > thr).sum(axis=0)
+small_dev = (df < -thr).sum(axis=0)
+total_dev = large_dev + small_dev
+df_extreme = pd.DataFrame({
+                "Average_Dev": average_dev,
+                "Large_Dev": large_dev,
+                "Small_Dev": small_dev,
+                "Total_Dev": total_dev
+                }).T
+
+## reconstruct
+data = df_extreme.iloc[3].values
+reconstructed_vol = np.zeros(mask_shape)
+reconstructed_vol[final_mask] = data
+output_nii = nib.Nifti1Image(reconstructed_vol, mask_affine)
+smoothed_nii = image.smooth_img(output_nii, fwhm=7)
+
+## plot
+kwargs = {
+            "colorbar": True,
+            "cbar_tick_format": "%.2g",
+            "annotate": False,
+            "draw_cross": False,
+            "radiological": False,
+            "cmap": 'magma',
+            "threshold": 12,
+            "symmetric_cbar": False,
+            "vmin": None,
+            "vmax": None,
+            "dim": -0.3,
+            "black_bg": True,
+            "cut_coords": 3
+        }
+
+for disp_mode in ["x", "y", "z"]:
+    fig = plot_stat_map(
+                    stat_map_img=smoothed_nii,
+                    bg_img=img_bg,
+                    display_mode=disp_mode,
+                    **kwargs
+                    )
+    fig.savefig(plots_dir / f"Figure_norm_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
+'''
