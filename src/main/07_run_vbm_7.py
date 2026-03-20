@@ -133,4 +133,4 @@ fig = plot_stat_map(
             display_mode="ortho",
             **kwargs
             )
-fig.savefig(plots_dir / "vbm" / f"vbm_norm_brain.pdf", dpi=600, bbox_inches='tight')
+fig.savefig(plots_dir / "vbm_norm" / f"vbm_norm_brain.pdf", dpi=600, bbox_inches='tight')
