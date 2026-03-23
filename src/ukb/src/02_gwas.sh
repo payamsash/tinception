@@ -124,6 +124,30 @@ for chr in {1..22}; do
         --destination="${data_file_dir}/" --brief --yes
 done
 
+#############
+merge_cmd='out_file="tinnitus_assoc_merged.txt"
+  cp /mnt/project/GWAS/results_subtype/*.regenie.gz .
+  gunzip *.regenie.gz
+  echo -e "CHROM\tGENPOS\tID\tALLELE0\tALLELE1\tA1FREQ\tN\tTEST\tBETA\tSE\tCHISQ\tLOG10P\tEXTRA" > $out_file
+  files="./*.regenie"
+for f in $files
+do
+    tail -n+2 $f | tr " " "\t" >> $out_file
+done
+
+rm *.regenie'
+
+# Define your data directory
+data_file_dir="/GWAS/results_subtype"
+
+# Execute the merge
+dx run swiss-army-knife \
+    -iin="${data_file_dir}/tinnitus_assoc.c1_Biotype.regenie.gz" \
+    -icmd="${merge_cmd}" \
+    --tag="Final_Merge" \
+    --instance-type "mem1_ssd1_v2_x16" \
+    --destination="${data_file_dir}" \
+    --brief --yes
 
 ############# only for brain volumes PCs
 exome_file_dir="/Bulk/Exome sequences/Population level exome OQFE variants, PLINK format - interim 450k release/"
@@ -168,27 +192,33 @@ for pheno in PC1_brain PC2_brain; do
     done
 done
 
-#############
-merge_cmd='out_file="tinnitus_assoc_merged.txt"
-  cp /mnt/project/GWAS/results_subtype/*.regenie.gz .
-  gunzip *.regenie.gz
-  echo -e "CHROM\tGENPOS\tID\tALLELE0\tALLELE1\tA1FREQ\tN\tTEST\tBETA\tSE\tCHISQ\tLOG10P\tEXTRA" > $out_file
-  files="./*.regenie"
-for f in $files
-do
-    tail -n+2 $f | tr " " "\t" >> $out_file
+############# only for brain PC
+for pheno in PC1_brain PC2_brain; do
+
+    merge_cmd="out_file=\"${pheno}_assoc_merged.txt\"
+    cp /mnt/project/GWAS/results_brain_pcs/${pheno}_assoc.c*.regenie.gz .
+    gunzip *.regenie.gz
+    echo -e \"CHROM\tGENPOS\tID\tALLELE0\tALLELE1\tA1FREQ\tN\tTEST\tBETA\tSE\tCHISQ\tLOG10P\tEXTRA\" > \$out_file
+    files=\"./*.regenie\"
+    for f in \$files
+    do
+        tail -n+2 \$f | tr \" \" \"\t\" >> \$out_file
+    done
+
+    rm *.regenie"
+
+    # Define your data directory
+    data_file_dir="/GWAS/results_brain_pcs"
+
+    # Execute the merge
+    dx run swiss-army-knife \
+        -iin="${data_file_dir}/${pheno}_assoc.c1_${pheno}.regenie.gz" \
+        -icmd="${merge_cmd}" \
+        --tag="Final_Merge" \
+        --name "merge_${pheno}" \
+        --instance-type "mem1_ssd1_v2_x16" \
+        --destination="${data_file_dir}" \
+        --brief --yes
+
 done
 
-rm *.regenie'
-
-# Define your data directory
-data_file_dir="/GWAS/results_subtype"
-
-# Execute the merge
-dx run swiss-army-knife \
-    -iin="${data_file_dir}/tinnitus_assoc.c1_Biotype.regenie.gz" \
-    -icmd="${merge_cmd}" \
-    --tag="Final_Merge" \
-    --instance-type "mem1_ssd1_v2_x16" \
-    --destination="${data_file_dir}" \
-    --brief --yes
