@@ -284,3 +284,46 @@ for f in glob.glob(os.path.join(IN_DIR, "*.sumstats.tsv")):
     out = df[["SNP", "CHR", "BP", "A1", "A2", "P", "BETA", "SE", "N"]].copy()
     out = out.dropna(subset=["SNP", "CHR", "BP", "P"])
     out.to_csv(os.path.join(OUT_DIR, f"{trait}.fuma.tsv"), sep="\t", index=False)
+
+######## final stage
+from pyliftover import LiftOver
+import pandas as pd
+
+lo = LiftOver('hg38', 'hg19')
+
+fnames = ["PC2_brain", "tinnitus_subtype", "MDm-lh", "Lateral-nucleus-lh", "CeM-lh"]
+
+tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
+gwas_dir = tinception_dir / "GWAS"
+
+def normalize_chr(ch):
+    ch = str(ch).strip()
+    if ch.lower().startswith("chr"):
+        ch = ch[3:]
+    if ch == "23":
+        ch = "X"
+    return f"chr{ch}"
+
+def convert(row):
+    chrom = normalize_chr(row["CHR"])
+    pos = int(row["BP"])
+    res = lo.convert_coordinate(chrom, pos)
+    if not res:
+        return None
+    return res[0][1]
+
+
+for fname in fnames:
+    df = pd.read_csv(gwas_dir / "processed" / f"{fname}.sumstats.tsv", sep="\t")
+    for _, r in df.head(5).iterrows():
+        print(r["CHR"], r["BP"], normalize_chr(r["CHR"]), convert(r))
+
+    df["BP_hg19"] = df.apply(convert, axis=1)
+
+    print(f"{fname} Before drop:", len(df))
+    print("Mapped:", df["BP_hg19"].notna().sum())
+    df2 = df.dropna(subset=["BP_hg19"]).copy()
+    df2["BP"] = df2["BP_hg19"].astype(int)
+    df2 = df2.drop(columns=["BP_hg19"])
+    print(f"{fname} After drop:", len(df2))
+    df2.to_csv(gwas_dir / "processed" / "fuma_ready" / f"{fname}.hg19.tsv", sep="\t", index=False, compression="zip")
