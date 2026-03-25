@@ -8,7 +8,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from nipype import Node, Workflow
-from nipype.interfaces.utility import IdentityInterface, Function
+from nipype.interfaces.utility import IdentityInterface
 from nipype.interfaces.freesurfer import ReconAll, SurfaceTransform
 
 
