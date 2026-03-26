@@ -130,8 +130,15 @@ plot_audiometry(df_long, hue="group", row="hemi", col="site",
                 ylim=(70, -10), markersize=3, err_lw=3.2, 
                 show_xticklabels=False, filename="sites.pdf")
 
-# 3. Biotypes Plot
-plot_audiometry(df_b, hue="Biotype", row="group", 
+# 3. only specific frequencies
+freqs = [125, 250, 500, 1000, 2000, 3000, 4000, 6000, 8000, 12500]
+df_sub = df_long.query('freq == @freqs')
+plot_audiometry(df_sub, hue="group", palette={"CO": "#1f77b4", "TI": "#d62728"}, 
+                filename="audio.pdf")
+
+# 4. Biotypes Plot
+df_sub = df_b.query('freq == @freqs')
+plot_audiometry(df_sub, hue="Biotype", row="group", 
                 palette={0: "#440154", 1: "#21908C"}, 
                 filename="biotypes.pdf")
 
