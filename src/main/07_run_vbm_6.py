@@ -211,10 +211,11 @@ for disp_mode in ["x", "y", "z"]:
                     )
     fig.savefig(plots_dir / "vbm_group" / f"co_gt_ti_effect_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
 
-'''
+
 ############ VBM norm (average deviations) ############
-df = pd.read_csv(vbm_norm_dir / "norm_model_subcortical" / "results" / "Z_test.csv")
+df = pd.read_csv(vbm_norm_dir / "results" / "Z_test.csv")
 img_bg = fsl_dir / "data" / "standard" / "MNI152_T1_0.5mm.nii.gz"
+plots_dir = tinception_dir / "plots" / "vbm_norm"
 
 mask_path = vbm_norm_dir / 'GM_mask.nii.gz'
 subcortical_mask_path = vbm_norm_dir / 'subcortical_mask_thr80.nii.gz'
@@ -243,35 +244,36 @@ df_extreme = pd.DataFrame({
                 }).T
 
 ## reconstruct
-data = df_extreme.iloc[3].values
-reconstructed_vol = np.zeros(mask_shape)
-reconstructed_vol[final_mask] = data
-output_nii = nib.Nifti1Image(reconstructed_vol, mask_affine)
-smoothed_nii = image.smooth_img(output_nii, fwhm=7)
+for idx, sub_title in zip([1, 2, 3], ["large", "small", "total"]):
+    data = df_extreme.iloc[idx].values
+    reconstructed_vol = np.zeros(mask_shape)
+    reconstructed_vol[final_mask] = data
+    output_nii = nib.Nifti1Image(reconstructed_vol, mask_affine)
+    smoothed_nii = image.smooth_img(output_nii, fwhm=7)
 
-## plot
-kwargs = {
-            "colorbar": True,
-            "cbar_tick_format": "%.2g",
-            "annotate": False,
-            "draw_cross": False,
-            "radiological": False,
-            "cmap": 'magma',
-            "threshold": 12,
-            "symmetric_cbar": False,
-            "vmin": None,
-            "vmax": None,
-            "dim": -0.3,
-            "black_bg": True,
-            "cut_coords": 3
-        }
+    ## plot
+    kwargs = {
+                "colorbar": True,
+                "cbar_tick_format": "%.2g",
+                "annotate": False,
+                "draw_cross": False,
+                "radiological": False,
+                "cmap": 'magma',
+                "threshold": 12,
+                "symmetric_cbar": False,
+                "vmin": None,
+                "vmax": None,
+                "dim": -0.3,
+                "black_bg": True,
+                "cut_coords": 3
+            }
 
-for disp_mode in ["x", "y", "z"]:
-    fig = plot_stat_map(
-                    stat_map_img=smoothed_nii,
-                    bg_img=img_bg,
-                    display_mode=disp_mode,
-                    **kwargs
-                    )
-    fig.savefig(plots_dir / f"Figure_norm_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
-'''
+    for disp_mode in ["x", "y", "z"]:
+        fig = plot_stat_map(
+                        stat_map_img=smoothed_nii,
+                        bg_img=img_bg,
+                        display_mode=disp_mode,
+                        **kwargs
+                        )
+        fig.savefig(plots_dir / f"Figure_norm_{sub_title}_{disp_mode}.pdf", dpi=600, bbox_inches='tight')
+
