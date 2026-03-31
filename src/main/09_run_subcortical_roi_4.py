@@ -9,12 +9,12 @@ import pingouin as pg
 def main(atlas_name):
 
     tinception_dir = Path("/Volumes/Extreme_SSD/payam_data/Tinception")
-    plots_dir = tinception_dir / "plots"
+    plots_dir = tinception_dir / "plots" / "rois_norm" / "main"
     vbm_design = tinception_dir / "VBM_design"
 
     threshold = 1.96
-    models_dir = tinception_dir / "subcortical_roi" / "norm_models_ukb_main"
-    fname = models_dir / atlas_name / "results" / f"Z_main.csv"
+    models_dir = tinception_dir / "subcortical_roi" / "norm_models_main"
+    fname = models_dir / atlas_name / "results" / f"Z_test.csv"
     df_dev = pd.read_csv(fname)
     df_master = pd.read_csv(vbm_design / "covars.csv")
 
@@ -96,7 +96,7 @@ def main(atlas_name):
     ax.tick_params(axis="y", which="minor", length=8, width=5.5)
     ax.set_xlabel("")
     fig.savefig(
-                plots_dir / "rois" / f"{atlas_name}_extreme_count.pdf",
+                plots_dir / f"{atlas_name}_extreme_count.pdf",
                 format="pdf",
                 dpi=300,
                 bbox_inches="tight"
@@ -140,6 +140,7 @@ def main(atlas_name):
     for i, region in enumerate(df_stats['region']):
         p_val = df_stats.loc[df_stats['region'] == region, 'p_fdr'].values[0]
         if p_val < 0.05:
+            print(f"{region} with corrected p_val of {p_val}")
             max_h = df_stats.loc[df_stats['region'] == region, ['perc_CO', 'perc_TI']].max(axis=1).values[0]
             ax.text(i, max_h + 0.5, '*', ha='center', va='bottom', color='black', fontsize=20, fontweight='bold')
 
@@ -148,7 +149,7 @@ def main(atlas_name):
     ax.set_xlabel("")
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(0.01, 1.2))
     fig.savefig(
-                plots_dir / "rois" / f"{atlas_name}_extreme_stats.pdf",
+                plots_dir / f"{atlas_name}_extreme_stats.pdf",
                 format="pdf",
                 dpi=300,
                 bbox_inches="tight"
