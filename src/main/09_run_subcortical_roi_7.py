@@ -84,7 +84,7 @@ plt.setp(ax.get_xticklabels(), rotation=45, ha="right", fontsize=8)
 ax.tick_params(axis="y", which="minor", length=8, width=5.5)
 ax.set_xlabel("")
 fig.savefig(
-            plots_dir / "rois" / f"{atlas_name}_extreme_count_ukb.pdf",
+            plots_dir / "rois_norm" / f"{atlas_name}_extreme_count_ukb.pdf",
             format="pdf",
             dpi=300,
             bbox_inches="tight"
@@ -128,7 +128,7 @@ ax.tick_params(axis="y", which="minor", length=8, width=5.5)
 ax.set_xlabel("")
 ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(0.01, 1.2))
 fig.savefig(
-            plots_dir / "rois" / f"{atlas_name}_extreme_stats_ukb.pdf",
+            plots_dir / "rois_norm" / f"{atlas_name}_extreme_stats_ukb.pdf",
             format="pdf",
             dpi=300,
             bbox_inches="tight"
@@ -165,7 +165,7 @@ ax.set_ylabel("-log10(p-value)", fontweight='bold')
 ax.set_title(f"Thalamic Extremes: Significance Map ({atlas_name})", fontsize=14, pad=20)
 ax.set_ylim([-0.2, 3.5])
 sns.despine()
-fig.savefig(plots_dir / "rois" / f"{atlas_name}_manhattan_ukb.pdf", bbox_inches="tight")
+fig.savefig(plots_dir / "rois_norm" / f"{atlas_name}_manhattan_ukb.pdf", bbox_inches="tight")
 
 ## rainfall plot
 df_stats['Ratio'] = df_stats['perc_TI'] / (df_stats['perc_CO'] + 0.1) 
@@ -182,4 +182,4 @@ ax.set_ylabel("Odds Ratio (TI % / CO %)", fontweight='bold')
 ax.set_title("Relative Prevalence of Structural Extremes", fontsize=14)
 ax.legend(title="FDR Significant", frameon=False, bbox_to_anchor=(1, 0.9))
 sns.despine()
-fig.savefig(plots_dir / "rois" / f"{atlas_name}_ratio_ukb.pdf", bbox_inches="tight")
+fig.savefig(plots_dir / "rois_norm" / f"{atlas_name}_ratio_ukb.pdf", bbox_inches="tight")
