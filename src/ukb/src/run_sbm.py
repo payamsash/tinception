@@ -8,7 +8,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from nipype import Node, Workflow
-from nipype.interfaces.utility import IdentityInterface
+from nipype.interfaces.utility import IdentityInterface, Function
 from nipype.interfaces.freesurfer import ReconAll, SurfaceTransform
 
 
@@ -103,7 +103,7 @@ def main(init_subject, end_subject):
     # ---- input table ----
     subprocess.run(["dx", "download", df_fname, "-o", "ukb_vol.csv"], check=True)
     df = pd.read_csv("ukb_vol.csv")
-    subjects = df["eid"].astype(str).tolist()[init_subject:end_subject]
+    subjects = df["eid"].astype(str).tolist()
 
     # ---- fsaverage ----
     for mode in ["fsaverage", "fsaverage5"]:
@@ -117,7 +117,27 @@ def main(init_subject, end_subject):
     batch_subject_ids = []
     batch_subject_dirs = []
     batch_zip_files = []
+    
+    
+    # ---- find missing subjects ----
+    result = subprocess.run(
+                        ["dx", "ls", "/SBM/"],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                        )
+    processed_subjects = {
+        line.rstrip("/").strip()
+        for line in result.stdout.splitlines()
+        if line.strip().endswith("/")
+    }
+    missing_subjects = [s for s in df_subjects if s not in processed_subjects]
 
+    print(f"Found {len(processed_subjects)} processed subjects")
+    print(f"Found {len(missing_subjects)} missing subjects")
+    subjects = sorted(missing_subjects)[init_subject:end_subject]
+    
+    ## main part
     for subject in tqdm(subjects):
         folder_id = subject[:2]
         zip_name = f"{subject}_{fs_code}_{extension}"
@@ -243,4 +263,4 @@ def main(init_subject, end_subject):
     print("done")
     
 if __name__ == "__main__":
-    main(init_subject=23, end_subject=100)
+    main(init_subject=100, end_subject=200)
