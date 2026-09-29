@@ -1,0 +1,8 @@
+# <sif name>                 <source URI>
+# FreeSurfer must stay 8.0.0: all 701 legacy subjects were run with
+# freesurfer-linux-ubuntu20_x86_64-8.0.0-20250204-0f2bd3a. Check `recon-all --version` inside the image matches.
+# NOTE: Docker Hub 8.0.0 is the rocky8 build (20250203) -> NOT used for processing; see freesurfer-8.0.0-ubuntu20.def
+freesurfer-8.0.0.sif          docker://freesurfer/freesurfer:8.0.0
+mriqc-24.0.2.sif              docker://nipreps/mriqc:24.0.2
+# CAT12.9 r2665 standalone (MATLAB Runtime, SPM25); tag verified on Docker Hub 2026-09-23.
+cat12-12.9-r2665.sif          docker://jhuguetn/cat12:r2665-2

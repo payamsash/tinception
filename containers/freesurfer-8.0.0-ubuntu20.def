@@ -1,0 +1,44 @@
+# FreeSurfer 8.0.0, Ubuntu 20.04 build — identical to the build used for the 701 legacy subjects
+# (freesurfer-linux-ubuntu20_x86_64-8.0.0-20250204-0f2bd3a). Docker Hub only has the rocky8 build.
+# Build: sbatch slurm/00_build_freesurfer.sbatch
+Bootstrap: docker
+From: ubuntu:20.04
+
+%setup
+    # mount points the ScienceCluster apptainer config binds into every container
+    mkdir -p ${APPTAINER_ROOTFS}/apps ${APPTAINER_ROOTFS}/shares ${APPTAINER_ROOTFS}/scratch ${APPTAINER_ROOTFS}/data
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    # Built without real root (--ignore-fakeroot-command): run apt's sandbox as root.
+    echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99-no-sandbox
+    apt-get update && apt-get install -y --no-install-recommends wget ca-certificates tzdata
+    wget -q https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/8.0.0/freesurfer_ubuntu20-8.0.0_amd64.deb -O /tmp/fs.deb
+    # Runtime dependencies declared by the FreeSurfer package. Without real root dpkg cannot chown
+    # files to system groups, so three packages FreeSurfer does not use (bsdmainutils, man-db,
+    # libutempter0 — terminal/man helpers) fail to unpack; tolerate exactly that, then configure the rest.
+    DEPS=$(dpkg-deb -f /tmp/fs.deb Depends | sed -E 's/\([^)]*\)//g; s/\|[^,]*//g; s/,/ /g')
+    echo "FreeSurfer deps: $DEPS"
+    apt-get install -y --no-install-recommends $DEPS || true
+    dpkg --configure -a || true
+    # FreeSurfer itself: plain extraction (no ownership changes needed)
+    dpkg-deb -x /tmp/fs.deb /
+    ldconfig
+    rm -f /tmp/fs.deb && apt-get clean && rm -rf /var/lib/apt/lists/*
+    cat /usr/local/freesurfer/8.0.0/build-stamp.txt
+
+%environment
+    export FREESURFER_HOME=/usr/local/freesurfer/8.0.0
+    export FSFAST_HOME=$FREESURFER_HOME/fsfast
+    export MNI_DIR=$FREESURFER_HOME/mni
+    export PATH=$FREESURFER_HOME/bin:$FREESURFER_HOME/fsfast/bin:$FREESURFER_HOME/tktools:$FREESURFER_HOME/mni/bin:$PATH
+    export PERL5LIB=$FREESURFER_HOME/mni/share/perl5
+    export FS_LICENSE=${FS_LICENSE:-$HOME/.freesurfer/license.txt}
+    # NOTE: recon-all also needs $FREESURFER etc. -> callers source $FREESURFER_HOME/SetUpFreeSurfer.sh
+
+%test
+    grep -q "ubuntu20_x86_64-8.0.0-20250204-0f2bd3a" /usr/local/freesurfer/8.0.0/build-stamp.txt
+    recon-all --version
+    mri_convert --version
+    command -v segment_subregions
