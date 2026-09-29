@@ -1,0 +1,32 @@
+# Paths per compute environment. Select with TINCEPTION_ENV=<name> (default: local).
+# Every script resolves paths through tinception.config — never hardcode paths in code.
+
+local:
+  root: /Volumes/Extreme_SSD/payam_data/Tinception          # project data root (SSD)
+  rawdata: /Volumes/Extreme_SSD/payam_data/Tinception/rawdata          # unified BIDS
+  derivatives: /Volumes/Extreme_SSD/payam_data/Tinception/derivatives
+  freesurfer: /Volumes/Extreme_SSD/payam_data/Tinception/derivatives/freesurfer-8.0.0
+  phenotypes_raw: /Volumes/Extreme_SSD/payam_data/Tinception_repo/metadata
+  legacy_masters: master_files                                 # repo-relative, per-site *_master.xlsx
+  results: /Volumes/Extreme_SSD/payam_data/Tinception/results
+  sources:
+    legacy_t1: /Volumes/Extreme_SSD/payam_data/Tinception/vbm_per_site
+    uiuc: /Volumes/Extreme_SSD/payam_data/UIUC_fatima
+    whasc: /Volumes/Extreme_SSD/payam_data/WHASC_fatima
+    antinomics_bids: "/Volumes/G_USZ_ORL$/Research/ANTINOMICS/data/mri_bids"
+
+cluster:
+  # UZH ScienceCluster (pasade@cluster.s3it.uzh.ch; login node u24-login-1, SLURM partition `standard`).
+  # Persistent data on the project share (backed up, group s3it_t_hpc_tinnitus.orl.med.uzh);
+  # scratch (20 TB quota, NOT for long-term storage) only for job working dirs.
+  # Modules: apptainer/1.5.0, miniforge3, matlab/r2024b.
+  root: /shares/tinnitus.orl.med.uzh/tinception
+  rawdata: /shares/tinnitus.orl.med.uzh/tinception/rawdata
+  derivatives: /shares/tinnitus.orl.med.uzh/tinception/derivatives
+  freesurfer: /shares/tinnitus.orl.med.uzh/tinception/derivatives/freesurfer-8.0.0
+  phenotypes_raw: /shares/tinnitus.orl.med.uzh/tinception/phenotypes/raw
+  legacy_masters: master_files
+  results: /shares/tinnitus.orl.med.uzh/tinception/results
+  containers: /shares/tinnitus.orl.med.uzh/containers
+  work: /scratch/pasade/tinception_work
+  sources: {}

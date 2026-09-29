@@ -1,0 +1,33 @@
+# Analysis parameters shared by all steps.
+seed: 42
+
+audiometry:
+  pta4_freqs: [500, 1000, 2000, 4000]      # WHO/ISO PTA4
+  pta_hf_freqs: [4000, 8000]               # primary high-frequency PTA (all audiogram sites have 4 & 8 kHz)
+  pta_hf468_freqs: [4000, 6000, 8000]      # secondary; 6 kHz missing at cogtail, london_1, tinspect
+  pta_ehf_freqs: [10000, 12500, 14000, 16000]  # extended high frequency, subset only
+  hl_threshold_db: 25                      # PTA4 > 25 dB HL -> hearing loss
+  min_freqs_required: all                  # 'all' or an int: minimum measured freqs to compute a PTA
+
+phenotypes:
+  sex_coding: {0: F, 1: M}                 # verified via eTIV per site (males larger at all 13 sites)
+  distress_instruments: [THI, TFI]
+  affect_instruments: [BDI, BAI, HADS, MDI]
+
+freesurfer:
+  version: 8.0.0
+  build: freesurfer-linux-ubuntu20_x86_64-8.0.0-20250204-0f2bd3a
+
+cat12:
+  version: "12.9"
+  smoothing_fwhm: [6, 8]
+
+stats:
+  n_perm: 5000
+  fdr_alpha: 0.05
+
+qc:
+  mad_k: 3.5                 # robust site-wise |z| beyond which a metric is an outlier (bad direction only)
+  min_iqm_outliers: 2        # flag for visual review if >= this many MRIQC IQMs are outliers
+  euler_abs_floor: -434      # PROVISIONAL: total (lh+rh) Euler below this -> exclude (~ -217 per hemisphere,
+                             # Rosen 2018); revisit once the full distribution is available

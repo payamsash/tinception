@@ -1,0 +1,20 @@
+# Site registry. `label` is the BIDS-safe prefix used in subject IDs (sub-<label><id>).
+# `source` selects the phenotype adapter in tinception.phenotypes.adapters.
+# Scanner info from TINCEPTION_PROJECT_SUMMARY §3.1 and BIDS sidecars; verified in 02_bids.
+
+sites:
+  andes:      {label: andes,      source: legacy_master, legacy_code: "01", country: CL, field_T: 3.0, vendor: Siemens, sequence: MPRAGE}
+  antinomics: {label: antinomics, source: legacy_master, legacy_code: "02", country: CH, field_T: 3.0, vendor: Philips, sequence: TFE, bids_source: antinomics_bids}
+  cogtail:    {label: cogtail,    source: legacy_master, legacy_code: "03", country: CH, field_T: 3.0, vendor: Philips, sequence: TFE}
+  erlangen:   {label: erlangen,   source: legacy_master, legacy_code: "04", country: DE, field_T: 3.0, vendor: Siemens, sequence: MPRAGE}
+  iccac:      {label: iccac,      source: legacy_master, legacy_code: "05", country: CH, field_T: 3.0, vendor: Philips, sequence: TFE}
+  inditms:    {label: inditms,    source: legacy_master, legacy_code: "06", country: DE, field_T: 1.5, vendor: Siemens, sequence: MPRAGE}
+  london_1:   {label: london1,    source: legacy_master, legacy_code: "07", country: UK, field_T: 3.0, vendor: Siemens, sequence: MPM}
+  london_2:   {label: london2,    source: legacy_master, legacy_code: "08", country: UK, field_T: 3.0, vendor: Siemens, sequence: MPRAGE}
+  neuropren:  {label: neuropren,  source: legacy_master, legacy_code: "09", country: DE, field_T: 1.5, vendor: Siemens, sequence: MPRAGE}
+  new-castle: {label: newcastle,  source: legacy_master, legacy_code: "10", country: UK, field_T: 3.0, vendor: Philips, sequence: TFE}
+  tinmeg:     {label: tinmeg,     source: legacy_master, legacy_code: "11", country: SE, field_T: 3.0, vendor: Siemens, sequence: MPRAGE}
+  tinspect:   {label: tinspect,   source: legacy_master, legacy_code: "12", country: CH, field_T: 3.0, vendor: Philips, sequence: TFE}
+  triple:     {label: triple,     source: legacy_master, legacy_code: "13", country: DE, field_T: 3.0, vendor: Philips, sequence: TFE}
+  uiuc:       {label: uiuc,       source: husain_bids,   country: US, field_T: 3.0, vendor: Siemens, model: Prisma_fit, sequence: MPRAGE}
+  whasc:      {label: whasc,      source: husain_bids,   country: US, field_T: 3.0, vendor: Siemens, model: Verio, sequence: MPRAGE}
