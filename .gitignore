@@ -24,3 +24,8 @@ src/ukb/data/**
 master_files/**
 !master_files/**/*.csv
 src/main/**.ipynb
+
+# v2 local outputs
+cleanup/
+.pytest_cache/
+.ruff_cache/
