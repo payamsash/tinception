@@ -18,3 +18,4 @@ sites:
   triple:     {label: triple,     source: legacy_master, legacy_code: "13", country: DE, field_T: 3.0, vendor: Philips, sequence: TFE}
   uiuc:       {label: uiuc,       source: husain_bids,   country: US, field_T: 3.0, vendor: Siemens, model: Prisma_fit, sequence: MPRAGE}
   whasc:      {label: whasc,      source: husain_bids,   country: US, field_T: 3.0, vendor: Siemens, model: Verio, sequence: MPRAGE}
+  audicog:    {label: audicog,    source: audicog,       country: FR, field_T: 3.0, vendor: Siemens, model: Prisma_fit, sequence: MPRAGE, voxel_mm: 0.7, pi: Hobeika}

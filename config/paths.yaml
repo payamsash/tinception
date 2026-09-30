@@ -14,6 +14,9 @@ local:
     uiuc: /Volumes/Extreme_SSD/payam_data/UIUC_fatima
     whasc: /Volumes/Extreme_SSD/payam_data/WHASC_fatima
     antinomics_bids: "/Volumes/G_USZ_ORL$/Research/ANTINOMICS/data/mri_bids"
+    audicog_first25: "/Volumes/G_USZ_ORL$/Research/ANT/tinception/data_brutes_First25Subjects"
+    audicog_last25: /Volumes/Extreme_SSD/payam_data/AUDICOG_hobeika_T1w/data_brutes_Last25Subjects   # T1w-only extract of the zip
+    audicog_pheno: "/Volumes/G_USZ_ORL$/Research/ANT/tinception/data_brutes_First25Subjects/Data_audicog_behavior.xlsx"
 
 cluster:
   # UZH ScienceCluster (pasade@cluster.s3it.uzh.ch; login node u24-login-1, SLURM partition `standard`).

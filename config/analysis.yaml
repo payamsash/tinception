@@ -5,7 +5,7 @@ audiometry:
   pta4_freqs: [500, 1000, 2000, 4000]      # WHO/ISO PTA4
   pta_hf_freqs: [4000, 8000]               # primary high-frequency PTA (all audiogram sites have 4 & 8 kHz)
   pta_hf468_freqs: [4000, 6000, 8000]      # secondary; 6 kHz missing at cogtail, london_1, tinspect
-  pta_ehf_freqs: [10000, 12500, 14000, 16000]  # extended high frequency, subset only
+  pta_ehf_freqs: [10000, 12000, 12500, 14000, 16000]  # extended high frequency (>=2 of these), subset only
   hl_threshold_db: 25                      # PTA4 > 25 dB HL -> hearing loss
   min_freqs_required: all                  # 'all' or an int: minimum measured freqs to compute a PTA
 
