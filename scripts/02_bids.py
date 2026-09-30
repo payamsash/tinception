@@ -11,6 +11,7 @@ Run order: 02_bids (plan) -> 01_phenotypes (uses id_map for availability flags) 
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -22,8 +23,10 @@ from tinception import bids, config
 
 
 def md5(p: Path) -> str:
+    """md5 of the image *content* (gz files are decompressed, so .nii -> .nii.gz copies compare equal)."""
     h = hashlib.md5()
-    with open(p, "rb") as f:
+    opener = gzip.open if p.name.endswith(".gz") else open
+    with opener(p, "rb") as f:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
