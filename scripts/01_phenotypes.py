@@ -24,7 +24,11 @@ DICTIONARY = {
     "legacy_id": "Tinception v1 ID (sub-SSNNN) when available.",
     "group": "CO = no tinnitus, TI = chronic tinnitus.",
     "group4": "CTRL (normal hearing, no tinnitus), HLOS (hearing loss, no tinnitus), TINN (tinnitus, normal hearing), TNHL (tinnitus + hearing loss).",
-    "group4_source": "'recruitment' when defined by the site's design, 'pta4' when derived from PTA4 > 25 dB HL.",
+    "group4_source": "'pta4' = derived from group and PTA4 > 25 dB HL (all sites); 'recruitment' = fallback when PTA4 is missing.",
+    "HL_HF": "PTA_HF (4+8 kHz) > 25 dB HL (analysis.yaml hl_hf_threshold_db).",
+    "group4_hf": "Sensitivity 4-group label with hearing loss defined by PTA_HF instead of PTA4 (missing where no PTA_HF).",
+    "group4_recruited": "Site's own design label (uiuc/whasc CTRL/HLOS/TINN/TNHL; cogtail NT/TI x HL/HA).",
+    "corrections": "Reviewed manual corrections applied (config/phenotype_corrections.yaml): variable: old -> new.",
     "hearing_aid": "Hearing-aid user (cogtail only).",
     "sex": "F / M. Legacy 0/1 coding mapped 0=F, 1=M (verified by eTIV at all sites).",
     "age": {"Description": "Age at scan.", "Units": "years"},
@@ -54,6 +58,19 @@ DICTIONARY = {
     "distress_z": "distress_raw z-scored within instrument across patients.",
     "affect_z": "Mean within-site z-score of available depression/anxiety scales.",
     "tinnitus": "1 = TI, 0 = CO.",
+    "TQ_goebel": "Goebel-Hiller Tinnitus-Fragebogen total (0–84; erlangen).",
+    "MDI": "Major Depression Inventory (triple, inditms).", "PHQ15": "PHQ-15 somatic symptoms (london_1).",
+    "PSQ_index": "Perceived Stress Questionnaire index (0–100).",
+    "hyperacusis_raw": "Hyperacusis questionnaire total in its own scale (see hyperacusis_instrument).",
+    "hyperacusis_instrument": "GUEF (0–45) | KHALFA (HQ-14, 0–42) | HQ20 (0–40, london_1) | HQ_L2 / HQ_NCL (scale not stated).",
+    "hyperacusis_z": "hyperacusis_raw z-scored within instrument (all subjects).",
+    "IHS": "Inventory of Hyperacusis Symptoms (london_2).",
+    "duration_note": "Caveats on duration_months (e.g. new-castle unit assumed years).",
+    "laterality": "left | right | bilateral | head | other.", "laterality_asym": "L>R / R>L for asymmetric bilateral.",
+    "laterality_raw": "Site's original laterality coding (tinspect 1/2/3 has no codebook -> raw only).",
+    "loudness_vas100": "Tinnitus loudness on a 0–100 scale.", "loudness_nrs10": "Tinnitus loudness 0–10 rating.",
+    "handedness": "R / L / B.", "education_level": "Categorical education (neuropren).",
+    "<var>_source": "master | archive: where a filled value came from.",
     "phenotype_status": "ok | no_image (phenotype row without T1) | no_phenotype (image without phenotype row).",
     "legacy_drop": "Excluded in Tinception v1 (DROPS folder, reason unrecorded); re-evaluated by 03_qc.",
     "fs_dir": "Existing FreeSurfer 8.0.0 subject directory (relative to the FreeSurfer root), if any.",
@@ -79,6 +96,9 @@ def main() -> None:
     df.to_csv(out / "participants.tsv", sep="\t", index=False, na_rep="n/a")
     with open(out / "participants.json", "w") as f:
         json.dump(DICTIONARY, f, indent=2)
+    if harmonize.LAST_CONFLICTS is not None:
+        harmonize.LAST_CONFLICTS.to_csv(out / "code" / "archive_conflicts.tsv", sep="\t", index=False)
+        print(f"archive conflicts (master kept): {len(harmonize.LAST_CONFLICTS)} -> code/archive_conflicts.tsv")
     miss = harmonize.missingness_report(df)
     miss.to_csv(out / "code" / "missingness_by_site.tsv", sep="\t")
 
