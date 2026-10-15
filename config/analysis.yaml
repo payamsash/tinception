@@ -6,7 +6,8 @@ audiometry:
   pta_hf_freqs: [4000, 8000]               # primary high-frequency PTA (all audiogram sites have 4 & 8 kHz)
   pta_hf468_freqs: [4000, 6000, 8000]      # secondary; 6 kHz missing at cogtail, london_1, tinspect
   pta_ehf_freqs: [10000, 12000, 12500, 14000, 16000]  # extended high frequency (>=2 of these), subset only
-  hl_threshold_db: 25                      # PTA4 > 25 dB HL -> hearing loss
+  hl_threshold_db: 25                      # PTA4 > 25 dB HL -> hearing loss (primary group4)
+  hl_hf_threshold_db: 25                   # PTA_HF (4+8 kHz) > 25 dB HL -> HF hearing loss (group4_hf, sensitivity)
   min_freqs_required: all                  # 'all' or an int: minimum measured freqs to compute a PTA
 
 phenotypes:
@@ -29,5 +30,13 @@ stats:
 qc:
   mad_k: 3.5                 # robust site-wise |z| beyond which a metric is an outlier (bad direction only)
   min_iqm_outliers: 2        # flag for visual review if >= this many MRIQC IQMs are outliers
-  euler_abs_floor: -434      # PROVISIONAL: total (lh+rh) Euler below this -> exclude (~ -217 per hemisphere,
-                             # Rosen 2018); revisit once the full distribution is available
+  euler_abs_floor: -434      # PRIMARY RULE (user-approved 2026-10-01): exclude recon-all failures + total Euler below
+                             # this (~ -217 per hemisphere, Rosen 2018). Flags are informational (visually checked).
+  strict:                    # sensitivity exclusion rule -> qc_strict_exclude
+    euler_abs_floor: -300
+    euler_site_z: -4
+    iqm_k: 4
+    min_iqm_outliers: 2
+  fs_input_notes:            # subjects whose FreeSurfer input differs from the site default
+    sub-london1AGe1: "mean of 6 MPM T1w echoes (echo-1 recon-all failed); Euler -644"
+    sub-london1DWCe1: "mean of 6 MPM T1w echoes (echo-1 recon-all failed); Euler -440"
