@@ -32,5 +32,8 @@ legacy/src/main/**.ipynb
 # v2 local outputs (subject-level; they live on the SSD / cluster share)
 cleanup/
 qc/
+
+# local documents (preregistration drafts etc.), not versioned
+docs/
 .pytest_cache/
 .ruff_cache/
