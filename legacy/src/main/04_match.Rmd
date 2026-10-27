@@ -1,0 +1,102 @@
+---
+title: "Untitled"
+author: "Payam Sadeghi Shabestari"
+date: "2026-02-13"
+output: html_document
+---
+
+
+---
+title: "Untitled"
+author: "Payam Sadeghi Shabestari"
+date: "2026-02-13"
+output: html_document
+---
+
+
+```{r matching_process}
+# 1. Clear environment
+rm(list = ls())
+cat("\014")
+
+library(MatchIt)
+library(dplyr)
+library(tidyr)
+library(cobalt)
+library(gtsummary)
+library(gt)
+
+# 2. Load data
+# Ensure this path is correct relative to your .Rmd file location
+dat_raw <- read.csv("../../master_files/master.csv")
+
+# 3. Define matching variables
+match_vars <- c("sex", "age", "site", "PTA")
+
+# 4. Preprocessing 
+# Note: I renamed this 'dat' to ensure it matches your loop call
+dat <- dat_raw %>%
+  mutate(
+    group = factor(group),
+    sex   = factor(sex),
+    age   = as.numeric(age),
+    site  = factor(site),
+    PTA   = as.numeric(PTA)
+  ) %>%
+  filter(complete.cases(.[, c("group", match_vars)]))
+
+# 5. Define formula (NO PIPE AT THE END)
+match_formula <- as.formula(
+  paste("group ~", paste(match_vars, collapse = " + "))
+)
+
+# 6. Define methods (NO PIPE AT THE END)
+match_methods <- c("nearest")
+
+# 7. Run the Loop
+for (match_type in match_methods) {
+  message(sprintf("Running matching with method: %s...", match_type))
+
+  m.out <- matchit(
+    formula = match_formula,
+    data    = dat,
+    method  = match_type,
+    ratio   = 1,
+    caliper = 0.2,
+    replace = FALSE
+  )
+
+  # Extract and Save CSV
+  matched_data <- match.data(m.out)
+  file_name <- paste0("matched_", match_type, ".csv")
+  write.csv(matched_data, file.path("../../master_files/matched", file_name), row.names = FALSE)
+
+  # Statistical Summary
+  summary_tbl <- matched_data %>%
+      select(group, age, sex, site, PTA) %>%
+      tbl_summary(
+          by = group,
+          statistic = list(
+              all_continuous() ~ "{mean} ({sd})",
+              all_categorical() ~ "{n} ({p}%)"
+          ),
+          digits = all_continuous() ~ 1
+      ) %>%
+      # This is the FIX for the FEXACT error
+      add_p(
+          test = list(site ~ "chisq.test"),
+          test.args = list(site ~ list(simulate.p.value = TRUE))
+      ) %>%
+      bold_labels()
+
+  # Save HTML Table
+  table_path <- sprintf("../../master_files/matched/summary_table_%s.html", match_type)
+  summary_tbl %>%
+    as_gt() %>%
+    gt::gtsave(filename = table_path)
+
+  # Plotting Density to check balance
+  # plot(m.out, type = "density", interactive = FALSE, which.xs = ~age + PTA)
+}
+summary_tbl
+```

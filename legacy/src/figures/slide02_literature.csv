@@ -1,0 +1,104 @@
+# Slide 2 panel A — published structural-MRI findings in chronic tinnitus vs controls.
+#
+# COMPILED 2026-09 from primary abstracts / PMC full text, cross-checked against six
+# reviews & meta-analyses: Adjamian 2014 (PMID 24892904), Makani 2022 (36138928),
+# Moring 2022 (36256642), Cheng 2020 (32161526), Scott-Wittenborn 2017 (28951023),
+# and Allan 2016's cross-study table (27708577).
+#
+# INCLUSION RULE: a row is present and verified=yes only when BOTH the direction AND
+# both per-group sample sizes were confirmed from a primary source. Studies with a
+# solid direction but unconfirmed N are listed as commented rows at the bottom — add
+# them once you have checked the PDF.
+#
+# DELIBERATELY EXCLUDED (reasons):
+#   - Pulsatile tinnitus (Liu 2018, Remer 2024) — mechanistically distinct from
+#     chronic subjective tinnitus; excluded by every subjective-tinnitus meta-analysis.
+#   - No control group (Schecklmann 2013 n=257, Vanneste 2015 n=154, Meyer 2016 n=257,
+#     Yoo 2016 n=127) — correlational only. Meyer re-analyses Schecklmann's sample,
+#     so including both would double-count.
+#   - Special populations: Mahoney 2011 (semantic dementia), Lee SY 2020 (MCI),
+#     Adegboro 2025 / Trakolis 2021 (vestibular schwannoma), Sasani 2024 (groups not
+#     age-matched: 50.2 vs 32.3 yr).
+#   - Sahin 2021 (n=10 vs 10) — retained but note it is the smallest study here.
+#
+# UNRESOLVED CONFLICTS (not silently picked — check before citing):
+#   - Schmidt 2018 ACC direction: the primary abstract reports a DECREASE in left ACC;
+#     Makani 2022's Table 1 codes the same contrast as an INCREASE. Row omitted.
+#   - Two different "Wei 2021" papers surfaced (10.3389/fnins.2021.633364 and
+#     10.3389/fnhum.2020.607452). The row below uses the fnhum VBM paper (PMID 33536889).
+#
+# direction : increase | decrease | null   (grey matter / volume / thickness in tinnitus)
+# n_ti/n_co : per-group sample size
+# region    : rows sharing a region name stack on one row of the plot
+#
+study,year,region,direction,n_ti,n_co,verified,source
+Mühlau,2006,Subcallosal / vmPFC,decrease,28,28,yes,PMID 16280464
+Mühlau,2006,Thalamus,increase,28,28,yes,PMID 16280464
+Mühlau,2006,Auditory cortex,null,28,28,yes,PMID 16280464
+Landgrebe,2009,Hippocampus,decrease,28,28,yes,PMID 19413945
+Landgrebe,2009,Subcallosal / vmPFC,null,28,28,yes,PMID 19413945
+Landgrebe,2009,Thalamus,null,28,28,yes,PMID 19413945
+Husain,2011,Auditory cortex,increase,8,7,yes,PMID 21047501
+Husain,2011,Frontal cortex,increase,8,7,yes,PMID 21047501
+Leaver,2011,Subcallosal / vmPFC,decrease,11,11,yes,PMID 21220097
+Leaver,2011,Auditory cortex,null,11,11,yes,PMID 21220097
+Leaver,2011,Thalamus,null,11,11,yes,PMID 21220097
+Aldhafeeri,2012,Auditory cortex,decrease,14,14,yes,PMID 22614806
+Aldhafeeri,2012,Frontal cortex,decrease,14,14,yes,PMID 22614806
+Leaver,2012,Subcallosal / vmPFC,decrease,23,21,yes,PMID 22493571
+Leaver,2012,Insula,null,23,21,yes,PMID 22493571
+Boyen,2013,Auditory cortex,increase,31,24,yes,PMID 22446179
+Boyen,2013,Frontal cortex,decrease,31,24,yes,PMID 22446179
+Boyen,2013,Thalamus,null,31,16,yes,PMID 22446179
+Melcher,2013,Subcallosal / vmPFC,null,24,24,yes,PMID 22504034
+Allan,2016,Auditory cortex,decrease,73,55,yes,PMID 27708577
+Allan,2016,Frontal cortex,decrease,73,55,yes,PMID 27708577
+Allan,2016,Subcallosal / vmPFC,null,73,55,yes,PMID 27708577
+Allan,2016,Precuneus,decrease,73,55,yes,PMID 27708577
+Besteher,2019,Parahippocampal,decrease,59,66,yes,PMID 31494400
+Besteher,2019,Anterior cingulate,decrease,59,66,yes,PMID 31494400
+Besteher,2019,Cerebellum,increase,59,66,yes,PMID 31494400
+Luan,2019,Frontal cortex,null,10,35,yes,PMID 30930739
+Koops,2020,Auditory cortex,null,39,39,yes,PMID 33311548
+Wei,2020,Thalamus,decrease,27,27,yes,PMID 33013302
+Profant,2020,Auditory cortex,null,32,41,yes,PMID 33343328
+Profant,2020,Amygdala,increase,32,41,yes,PMID 33343328
+Profant,2020,Hippocampus,increase,32,41,yes,PMID 33343328
+Profant,2020,Insula,decrease,32,41,yes,PMID 33343328
+Wei,2021,Parahippocampal,decrease,33,26,yes,PMID 33536889
+Wei,2021,Auditory cortex,decrease,33,26,yes,PMID 33536889
+Wei,2021,Basal ganglia,decrease,33,26,yes,PMID 33536889
+Chen,2021,Auditory cortex,decrease,13,18,yes,PMID 33776630
+Sahin,2021,Amygdala,increase,10,10,yes,PMID 32748247
+Sahin,2021,Cerebellum,decrease,10,10,yes,PMID 32748247
+Mennink,2022,Cerebellum,null,94,109,yes,PMID 35573294
+Ma,2022,Auditory cortex,decrease,63,36,yes,PMID 36276740
+Rosemann,2022,Frontal cortex,increase,20,20,yes,PMID 35963187
+Rosemann,2022,Precuneus,increase,20,20,yes,PMID 35963187
+Pandey,2024,Insula,decrease,52,52,yes,PMID 39505573
+Pandey,2024,Precuneus,decrease,52,52,yes,PMID 39505573
+Pandey,2024,Frontal cortex,decrease,52,52,yes,PMID 39505573
+Lee,2025,Amygdala,increase,53,52,yes,PMID 39789953
+Lee,2025,Hippocampus,increase,53,52,yes,PMID 39789953
+Lee,2025,Thalamus,null,53,52,yes,PMID 39789953
+Shen,2025,Parahippocampal,decrease,74,98,yes,PMID 40002700
+Shen,2025,Insula,decrease,74,98,yes,PMID 40002700
+Shen,2025,Frontal cortex,increase,74,98,yes,PMID 40002700
+San-Martín,2025,Basal ganglia,increase,51,40,yes,PMID 41271804
+San-Martín,2025,Auditory cortex,null,51,40,yes,PMID 41271804
+San-Martín,2025,Anterior cingulate,null,51,40,yes,PMID 41271804
+San-Martín,2025,Thalamus,null,51,40,yes,PMID 41271804
+Kaniewska,2026,Auditory cortex,null,40,28,yes,PMID 42128994
+#
+# ── PENDING: direction confirmed, per-group N not yet verified. Check the PDF, fill
+#    in n_ti / n_co, set verified=yes, and move above this line. ──
+#
+# Schneider,2009,Auditory cortex,decrease,61,45,no,PMID 19168138 — N from Adjamian 2014 review table, not the paper
+# Schmidt,2018,Parahippocampal,decrease,,,no,PMID 29158175 — three sources give three different N
+# Tai,2023,Frontal cortex,decrease,,,no,PMID 36869165 — paywalled
+# Elmer,2023,Auditory cortex,increase,,,no,PMID 37349539 — paywalled
+# Kim,2025,Insula,decrease,,,no,PMID 39369776 — paywalled
+# ZainulAbidin,2025,Thalamus,increase,3121,3121,no,PMID 40496672 — UK Biobank; verify per-group N (paper states total 6242)
+# ZainulAbidin,2025,Hippocampus,increase,3121,3121,no,PMID 40496672
+# ZainulAbidin,2025,Basal ganglia,increase,3121,3121,no,PMID 40496672
+# ZainulAbidin,2025,Precuneus,increase,3121,3121,no,PMID 40496672
