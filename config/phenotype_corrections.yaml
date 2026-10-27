@@ -1,0 +1,11 @@
+# Explicit, reviewed corrections applied after all adapters/archive merges (tinception.phenotypes.harmonize).
+# Every correction is listed in the `corrections` column of participants.tsv. Add new ones here, never in code.
+corrections:
+  - {participant_id: sub-tinmeg0852, variable: age, value: 35, reason: "ages of 0852/0853 swapped in tinmeg_master.xlsx; DOB 1985-06-30 in Tinmeg_Questionnaire_2021 (user-approved 2026-10-01)"}
+  - {participant_id: sub-tinmeg0853, variable: age, value: 18, reason: "ages of 0852/0853 swapped in tinmeg_master.xlsx; DOB 2002-07-05 in Tinmeg_Questionnaire_2021 (user-approved 2026-10-01)"}
+  - {participant_id: sub-cogtail2hgbdwTIHA, variable: THI, value: 14, reason: "cogtail_master.xlsx has 44; original source Masterfile2.0 [THI] has 14 and all other cogtail THI match the source -> transcription error"}
+  - {participant_id: sub-tinspectMR4048S8P8, variable: age, value: 24, reason: "tinspect_master.xlsx has 21; source TINSPECT_masterfile_final [all_final] has 24 and all other tinspect ages match the source"}
+# Reviewed and deliberately NOT changed:
+#  - cogtail 3jwrm3/3ucbt4/7lpg69/8i1jsz stay CO (user: keep master grouping; cogtail team regrouped them, THI 0-8)
+#  - cogtail 3jwrm3 age/sex kept 66/F (Masterfile2.0 says 73/m; eTIV fits female slightly better -> ambiguous)
+#  - tinspect laterality 1/2/3 kept raw only (no codebook); new-castle duration unit assumed years (duration_note)
