@@ -28,6 +28,8 @@ t1_inputs:                   # non-default T1w inputs, shared by FreeSurfer v2 a
   skip: [sub-london1CKCe1]   # no T1w in the source data (legacy file was a copy of DWCe1)
 
 cat12:                       # volume-only (user decision 2026-10-27): secondary/exploratory VBM + cerebellar ROIs
+                             # record of the settings; applied in config/cat12_segment.m (vox, atlases) and
+                             # slurm/05_cat12.sbatch (FWHM) -> keep in sync
   version: "12.9"
   revision: r2665
   batch: config/cat12_segment.m   # MNI152NLin2009cAsym Geodesic Shooting template (CAT12 default), no surfaces
