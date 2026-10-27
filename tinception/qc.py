@@ -113,6 +113,18 @@ def apply_rules(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
         ld = df["legacy_drop"].fillna(False).astype(bool)
         add(ld, "excluded in v1 (reason unrecorded)")
         flag |= ld
+    st = cfg.get("strict")
+    if st:
+        n_strict = pd.Series(0, index=df.index)
+        for m, sign in IQM_BAD_DIRECTION.items():
+            if f"{m}_z" in df:
+                n_strict += ((sign * df[f"{m}_z"]) > st["iqm_k"]).fillna(False).astype(int)
+        strict = exclude.copy()
+        if "euler_total" in df:
+            strict |= (df["euler_total"] < st["euler_abs_floor"]).fillna(False)
+            strict |= (df["euler_z"] < st["euler_site_z"]).fillna(False)
+        strict |= n_strict >= st["min_iqm_outliers"]
+        df["qc_strict_exclude"] = strict
     df["qc_reasons"] = ["; ".join(r) for r in reasons]
     df["qc_auto"] = np.where(exclude, "exclude", np.where(flag, "flag", "include"))
     return df
