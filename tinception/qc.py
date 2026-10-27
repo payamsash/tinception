@@ -5,11 +5,12 @@ Metrics
 - FreeSurfer Euler number of the uncorrected surfaces (``orig.nofix``), from ``recon-all.log``.
   Strongest single predictor of unusable scans (Rosen et al. 2018, NeuroImage 169:407).
 - MRIQC image-quality metrics (T1w): cjv, cnr, snr_total, efc, fber, qi_2.
-- (later) CAT12 image-quality rating (IQR).
+- CAT12 image-quality rating (IQR): applied in scripts/05_cat12.py collect (VBM / CAT12 ROIs only).
 
 Rules (config/analysis.yaml -> qc)
 ----------------------------------
-- exclude: recon-all error, or Euler total below an absolute floor.
+- exclude: no FreeSurfer output, recon-all error or not completed (running / killed), or Euler total below
+  an absolute floor.
 - flag (visual review): Euler total or >= ``min_iqm_outliers`` IQMs beyond a robust site-wise z of
   ``mad_k`` in the "bad" direction. Robust z = (x - site median) / (1.4826 * site MAD).
 Manual decisions in an existing qc_exclusions.tsv are preserved.
@@ -87,10 +88,16 @@ def apply_rules(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
             reasons[i].append(text)
 
     exclude = pd.Series(False, index=df.index)
-    if "fs_error" in df:
-        e = df["fs_error"].fillna(False).astype(bool)
-        add(e, "recon-all error")
-        exclude |= e
+    err = df["fs_error"].fillna(False).astype(bool) if "fs_error" in df else pd.Series(False, index=df.index)
+    add(err, "recon-all error")
+    exclude |= err
+    if "fs_done" in df:
+        done = df["fs_done"].map({True: True, False: False, "True": True, "False": False})  # TSV round trip
+        none = done.isna()                    # no FreeSurfer directory / not in any Euler file
+        nd = done.eq(False) & ~err            # still running or killed (e.g. SLURM timeout): no .error file
+        add(none, "no FreeSurfer output")
+        add(nd, "recon-all not completed")
+        exclude |= none | nd
     if "euler_total" in df:
         floor = df["euler_total"] < cfg["euler_abs_floor"]
         add(floor, f"Euler<{cfg['euler_abs_floor']}")

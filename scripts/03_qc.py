@@ -60,8 +60,15 @@ def cmd_aggregate(args: argparse.Namespace) -> None:
 
     if args.euler:
         eul = pd.concat([pd.read_csv(f, sep="\t", na_values="n/a") for f in args.euler])
-        eul = eul.sort_values("euler_total").drop_duplicates("participant_id", keep="last")
+        # a subject in several files: a row with an Euler number beats one without (e.g. a run still going
+        # in one tree), then the highest Euler wins
+        eul = (eul.assign(_ok=eul.euler_total.notna()).sort_values(["_ok", "euler_total"])
+               .drop_duplicates("participant_id", keep="last").drop(columns="_ok"))
         df = df.merge(eul, on="participant_id", how="left", validate="one_to_one")
+        absent = df.participant_id[~df.participant_id.isin(eul.participant_id)]
+        if len(absent):
+            print(f"WARNING: {len(absent)} subjects in no --euler file (excluded as 'no FreeSurfer output'): "
+                  f"{absent.tolist()[:10]}")
     if args.mriqc:
         iqm = qc.collect_mriqc(args.mriqc)
         df = df.merge(iqm, on="participant_id", how="left", validate="one_to_one")

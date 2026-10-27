@@ -40,6 +40,19 @@ def test_rules_exclude_flag_include():
     assert (out.qc_auto[5:] == "include").all()
 
 
+def test_unfinished_recon_is_excluded():
+    df = _cohort(10).assign(fs_done=True)
+    df.loc[0, ["fs_done", "euler_total"]] = [False, np.nan]   # running / SLURM timeout: no .error file
+    df.loc[1, ["fs_done", "fs_error"]] = [False, True]         # failed run
+    df[["fs_done", "fs_error"]] = df[["fs_done", "fs_error"]].astype(object)
+    df.loc[2, ["fs_done", "fs_error", "euler_total"]] = [np.nan, np.nan, np.nan]  # no FS dir / no Euler row
+    df.loc[3, "fs_done"] = "True"                               # string from a TSV round trip
+    out = qc.apply_rules(df, CFG)
+    assert list(out.qc_auto[:4]) == ["exclude", "exclude", "exclude", "include"]
+    assert list(out.qc_reasons[:3]) == ["recon-all not completed", "recon-all error", "no FreeSurfer output"]
+    assert (out.qc_auto[3:] == "include").all()
+
+
 def test_manual_decisions_survive_rerun():
     auto = pd.DataFrame({"participant_id": ["a", "b"], "qc_auto": ["flag", "include"]})
     prev = pd.DataFrame({"participant_id": ["a"], "manual_decision": ["include"],
