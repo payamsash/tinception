@@ -96,6 +96,8 @@ def build(participants: Path, qc_dir: Path, tiv_files: list[Path]) -> pd.DataFra
     p["legacy_drop_reason"] = legacy_drop_reason(p)
     p["core_complete"] = p[["age", "sex", "group", "PTA4"]].notna().all(axis=1)
     p["qc_ok"] = p.qc_status.fillna("") != "exclude"
+    if "qc_strict_exclude" not in p:
+        raise SystemExit("qc_metrics.tsv has no qc_strict_exclude: rerun `03_qc.py aggregate` with analysis.yaml qc.strict")
     p["qc_strict_exclude"] = p["qc_strict_exclude"].fillna(True).astype(bool) | ~p["qc_ok"]
     p["in_case_control"] = p.core_complete & p.qc_ok & (p.site_design == "case-control")
     p["in_patients"] = p.core_complete & p.qc_ok & (p.group == "TI")

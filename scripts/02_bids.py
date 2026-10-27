@@ -77,9 +77,6 @@ def main() -> None:
     need_fs = per_sub[per_sub.has_T1w & per_sub.fs_dir.isna()]
     need_fs[["participant_id", "site", "original_id"]].to_csv(raw / "code" / "needs_freesurfer.tsv", sep="\t", index=False)
     print(f"\nneeds FreeSurfer: {len(need_fs)} -> code/needs_freesurfer.tsv")
-    # andes legacy surfaces used -T2pial; list for the T1-only sensitivity rerun
-    per_sub[per_sub.site == "andes"][["participant_id", "site", "original_id"]].to_csv(
-        raw / "code" / "andes_t1only.tsv", sep="\t", index=False)
 
     if args.copy:
         with open(raw / "dataset_description.json", "w") as f:
