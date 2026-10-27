@@ -25,7 +25,12 @@ master_files/**
 !master_files/**/*.csv
 src/main/**.ipynb
 
-# v2 local outputs
+# legacy/ keeps the old code only: no UKB-derived or subject-level data, no scratch notebooks (repo is public)
+legacy/src/ukb/data/**
+legacy/src/main/**.ipynb
+
+# v2 local outputs (subject-level; they live on the SSD / cluster share)
 cleanup/
+qc/
 .pytest_cache/
 .ruff_cache/
