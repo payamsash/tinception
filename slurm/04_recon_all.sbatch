@@ -1,9 +1,9 @@
 #!/bin/bash -l
 # FreeSurfer 8.0.0 recon-all (+ qcache) for subjects listed in a TSV (default: rawdata/code/needs_freesurfer.tsv).
 # Submit:  N=$(($(wc -l < $LIST) - 1)); sbatch --array=1-${N}%50 slurm/04_recon_all.sbatch $LIST
-# Andes T1-only sensitivity run (primary andes outputs keep their -T2pial surfaces):
-#   SUBJECTS_DIR_OVERRIDE=/shares/tinnitus.orl.med.uzh/tinception/derivatives/freesurfer-8.0.0-andesT1only SUBSEG=0 \
-#   sbatch --export=ALL --array=1-106%50 slurm/04_recon_all.sbatch rawdata/code/andes_t1only.tsv
+# RECON_FLAGS="-cw256" (FOV > 256 mm) etc. are appended to recon-all.
+# All subjects, andes included, are run T1-only (primary, user decision 2026-10-27); the legacy andes
+# -T2pial outputs are kept in derivatives/freesurfer-8.0.0-legacy-andesT2pial as a sensitivity analysis.
 #SBATCH --job-name=recon
 #SBATCH --time=08:00:00
 #SBATCH --cpus-per-task=4
@@ -20,20 +20,26 @@ MCR=/shares/tinnitus.orl.med.uzh/containers/MCR_R2019b/v97                   # f
 LICENSE=$HOME/.freesurfer/license.txt
 
 SUB=$(awk -F'\t' -v i=$((SLURM_ARRAY_TASK_ID + 1)) 'NR==i {print $1}' "$LIST")
-T1=$RAW/$SUB/anat/${SUB}_T1w.nii.gz
+T1=$RAW/$SUB/anat/${SUB}_${T1_ACQ:+acq-${T1_ACQ}_}T1w.nii.gz   # T1_ACQ=echomean -> *_acq-echomean_T1w
+[[ -n "${T1_DIR:-}" ]] && T1=$T1_DIR/${SUB}_T1w.nii.gz          # T1_DIR=<dir>: preprocessed inputs (e.g. N4 pilot)
+# a `t1` column in the list (rawdata/code/cat12_list.tsv from scripts/05_cat12.py, which applies
+# analysis.yaml t1_inputs) gives the input per subject, so FreeSurfer and CAT12 share the same rules
+COL=$(awk -F'\t' 'NR==1 {for (i=1; i<=NF; i++) if ($i == "t1") print i}' "$LIST")
+[[ -n "$COL" ]] && T1=$(awk -F'\t' -v i=$((SLURM_ARRAY_TASK_ID + 1)) -v c="$COL" 'NR==i {print $c}' "$LIST")
+[[ -n "${T1_DIR:-}${T1_ACQ:-}" && -z "${SUBJECTS_DIR_OVERRIDE:-}" ]] && \
+  { echo "T1_DIR/T1_ACQ need an explicit SUBJECTS_DIR_OVERRIDE"; exit 1; }
 [[ -f "$T1" || -f "$SUBJECTS_DIR/$SUB/scripts/recon-all.done" ]] || { echo "missing $T1"; exit 1; }
 mkdir -p "$SUBJECTS_DIR"
 
 module load apptainer/1.5.0
 # every call sources FreeSurfer's own setup script (FS 8 recon-all needs $FREESURFER etc.)
-run() { apptainer exec -B "$RAW,$SUBJECTS_DIR,$LICENSE,$MCR:/usr/local/freesurfer/8.0.0/MCRv97" \
+run() { apptainer exec -B "$RAW,$SUBJECTS_DIR,$LICENSE,$MCR:/usr/local/freesurfer/8.0.0/MCRv97${T1_DIR:+,$T1_DIR}" \
           --env SUBJECTS_DIR="$SUBJECTS_DIR",FS_LICENSE="$LICENSE" "$SIF" \
           bash -c 'export SUBJECTS_DIR_KEEP=$SUBJECTS_DIR; source $FREESURFER_HOME/SetUpFreeSurfer.sh >/dev/null;
                    export SUBJECTS_DIR=$SUBJECTS_DIR_KEEP; exec "$@"' _ "$@"; }
 run bash -c 'grep -q "ubuntu20_x86_64-8.0.0-20250204-0f2bd3a" $FREESURFER_HOME/build-stamp.txt' \
   || { echo "wrong FreeSurfer build"; exit 2; }
 
-# New subjects are run T1-only (no -T2pial); andes legacy outputs used -T2pial (see sensitivity run above)
 D=$SUBJECTS_DIR/$SUB/scripts
 # FS writes recon-all.done even on failure: done == .done present AND no .error
 if [[ -f $D/recon-all.done && ! -f $D/recon-all.error ]]; then
@@ -41,9 +47,9 @@ if [[ -f $D/recon-all.done && ! -f $D/recon-all.error ]]; then
     run recon-all -s "$SUB" -qcache -threads "$SLURM_CPUS_PER_TASK" -no-isrunning   # legacy: qcache only
 elif [[ -f $SUBJECTS_DIR/$SUB/mri/orig/001.mgz ]]; then
   rm -f $D/recon-all.error $D/IsRunning.*                                             # resume failed run
-  run recon-all -s "$SUB" -all -qcache -threads "$SLURM_CPUS_PER_TASK" -no-isrunning
+  run recon-all -s "$SUB" -all -qcache -threads "$SLURM_CPUS_PER_TASK" -no-isrunning ${RECON_FLAGS:-}
 else
-  run recon-all -s "$SUB" -i "$T1" -all -qcache -threads "$SLURM_CPUS_PER_TASK"
+  run recon-all -s "$SUB" -i "$T1" -all -qcache -threads "$SLURM_CPUS_PER_TASK" ${RECON_FLAGS:-}
 fi
 
 [[ "${SUBSEG:-1}" == "1" ]] || exit 0
