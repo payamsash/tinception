@@ -38,6 +38,38 @@ cat12:                       # volume-only (user decision 2026-10-27): secondary
   atlases: [neuromorphometrics, cobra, suit]
   iqr_max_mark: 3.5          # exclude IQR worse than grade C (mark > 3.5 = rating < 70%)
 
+normative:                   # step 07 (user decisions 2026-10-27; analysis plan 6.3)
+  engine: blr                # PCNtoolkit 1.3 BLR at every level (ROI, vertex, voxel); HBR only as robustness
+  warp: WarpSinhArcsinh      # non-Gaussian (skew / kurtosis) likelihood
+  age_knots: 5               # cubic B-spline on age (first covariate); all other covariates enter linearly
+  bspline_degree: 3
+  batch_effects: [site, sex] # site- and sex-specific mean AND variance (fixed_effect + fixed_effect_var);
+                             # a reference can set batch_variance: false (batch effects on the mean only)
+  heteroskedastic: true      # variance also varies with age
+  folds: 10                  # cross-fitting of the reference sample, stratified by site x sex
+  extreme_z: 2.6
+  models:                    # covariate ladder (no Euler: QC rule + downstream covariate instead)
+    A: []
+    B4: [PTA4]
+    B: [PTA4, PTA_HF]
+  references:                # who the model is trained on (only subjects in_case_control are scored)
+    CO: {column: group, value: CO}        # primary: all non-tinnitus controls (CTRL + HLOS)
+    CTRL: {column: group4, value: CTRL, batch_variance: false}   # secondary: normal-hearing controls; one variance
+                             # shared across sites/sexes (2026-10-28: site-specific variance from 6-9 controls at small
+                             # sites gave heavy-tailed held-out z in 44-56 features)
+  tiv_column: eTIV           # added as a linear covariate for feature sets with tiv: true (not thickness)
+  feature_sets:              # <derivatives>/features/<table>.tsv; include = regex, exclude = regex
+    dk_thick: {table: dk, include: "^thick__(lh|rh)_", exclude: "MeanThickness", tiv: false}
+    dk_area: {table: dk, include: "^area__(lh|rh)_", exclude: "WhiteSurfArea", tiv: true}
+    aseg: {table: aseg, include: "^(Left|Right)-(Thalamus|Caudate|Putamen|Pallidum|Hippocampus|Amygdala|Accumbens-area)$", tiv: true}
+    subseg: {table: subseg, include: "^(hippo|amyg|thal)__", exclude: "fissure", tiv: true}
+  calibration:               # D1: pooled thresholds; per site a 95% CI criterion (11-80 controls per site)
+    pooled_mean_abs: 0.1
+    pooled_sd: [0.9, 1.1]
+    site_skew_abs: 1.0
+    site_fdr_q: 0.05         # no feature may show a site effect in held-out control z (one-way ANOVA, BH-FDR);
+                             # replaces the cross-validated site AUC, which anti-learns on site-centred z (2026-10-28)
+
 stats:
   n_perm: 5000
   fdr_alpha: 0.05
