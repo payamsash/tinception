@@ -28,7 +28,7 @@ D=$OUT/$SUB
 MWP=$D/mri/mwp1${SUB}_T1w.nii
 
 is_done() {
-  [[ -f $D/report/cat_${SUB}_T1w.xml && -f $MWP ]] || return 1
+  [[ -f $D/report/cat_${SUB}_T1w.xml && -f $D/label/catROI_${SUB}_T1w.xml && -f $MWP ]] || return 1
   for k in $FWHM; do [[ -f $D/mri/s${k}mwp1${SUB}_T1w.nii ]] || return 1; done
 }
 if is_done; then echo "done: $SUB"; exit 0; fi
