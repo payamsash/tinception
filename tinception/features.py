@@ -44,7 +44,8 @@ AUDITORY = {
 }
 
 
-def _clean(name: str) -> str:
+def clean_name(name: str) -> str:
+    """Region name -> column-safe string (shared by the FreeSurfer and CAT12 tables)."""
     return re.sub(r"[^A-Za-z0-9_.+-]", "_", name)
 
 
@@ -63,7 +64,7 @@ def read_aseg(subject_dir: Path) -> tuple[dict, dict]:
                 glob[parts[1]] = float(parts[3])
         elif not line.startswith("#") and len(line.split()) >= 5:
             p = line.split()
-            vols[_clean(p[4])] = float(p[3])  # columns: Index SegId NVoxels Volume_mm3 StructName ...
+            vols[clean_name(p[4])] = float(p[3])  # columns: Index SegId NVoxels Volume_mm3 StructName ...
     return vols, glob
 
 
@@ -84,7 +85,7 @@ def read_cortical(subject_dir: Path, stem: str) -> dict:
                 out[f"area__{h}_WhiteSurfArea"] = float(line.split(",")[3])
             elif cols and not line.startswith("#") and line.strip():
                 row = dict(zip(cols, line.split(), strict=False))
-                name = _clean(row["StructName"])
+                name = clean_name(row["StructName"])
                 for src, short in MEASURES.items():
                     if src in row:
                         out[f"{short}__{h}_{name}"] = float(row[src])
@@ -103,7 +104,7 @@ def read_subseg(subject_dir: Path) -> dict:
             for line in f.read_text().splitlines():
                 p = line.split()
                 if len(p) == 2:
-                    out[f"{key}__{h + '_' if h else ''}{_clean(p[0])}"] = float(p[1])
+                    out[f"{key}__{h + '_' if h else ''}{clean_name(p[0])}"] = float(p[1])
     return out
 
 
