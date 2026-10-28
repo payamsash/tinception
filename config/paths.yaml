@@ -5,7 +5,7 @@ local:
   root: /Volumes/Extreme_SSD/payam_data/Tinception          # project data root (SSD)
   rawdata: /Volumes/Extreme_SSD/payam_data/Tinception/rawdata          # unified BIDS
   derivatives: /Volumes/Extreme_SSD/payam_data/Tinception/derivatives
-  freesurfer: /Volumes/Extreme_SSD/payam_data/Tinception/derivatives/freesurfer-8.0.0
+  freesurfer: /Volumes/Extreme_SSD/payam_data/Tinception/derivatives/freesurfer-8.0.0   # LEGACY v1 backup (legacy dir names), NOT the v2 rerun -> FreeSurfer work runs on the cluster
   phenotypes_raw: /Volumes/Extreme_SSD/payam_data/Tinception_repo/metadata
   legacy_masters: master_files                                 # repo-relative, per-site *_master.xlsx
   results: /Volumes/Extreme_SSD/payam_data/Tinception/results
@@ -28,7 +28,7 @@ cluster:
   root: /shares/tinnitus.orl.med.uzh/tinception
   rawdata: /shares/tinnitus.orl.med.uzh/tinception/rawdata
   derivatives: /shares/tinnitus.orl.med.uzh/tinception/derivatives
-  freesurfer: /shares/tinnitus.orl.med.uzh/tinception/derivatives/freesurfer-8.0.0
+  freesurfer: /shares/tinnitus.orl.med.uzh/tinception/derivatives/freesurfer-8.0.0   # v2 rerun (all subjects, BIDS names); legacy andes T2pial: freesurfer-8.0.0-legacy-andesT2pial
   phenotypes_raw: /shares/tinnitus.orl.med.uzh/tinception/phenotypes/raw
   legacy_masters: master_files
   results: /shares/tinnitus.orl.med.uzh/tinception/results
