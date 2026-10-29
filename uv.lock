@@ -1134,6 +1134,21 @@ wheels = [
 ]
 
 [[package]]
+name = "neurocombat"
+version = "0.2.12"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/e4/ca7af7aaf09b34702ef1f2a5e6afd5105b89c01a09f323ac60af429ef8b4/neuroCombat-0.2.12.tar.gz", hash = "sha256:dfba419ec1a251f4142a3705a1567e5a3b9589dc39ca93a57669cda09c954caa", size = 6191, upload-time = "2021-05-18T16:25:17.511Z" }
+
+[[package]]
+name = "neuroharmonize"
+version = "2.4.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/0d/0964c10abeef4959d600e2faa3e08212076160c9481ca5da54514632c724/neuroharmonize-2.4.5.tar.gz", hash = "sha256:30afa2e1b43be66d35db7fd3933b645fa7667a58a50a5c53f8cc9abc4482626f", size = 17753, upload-time = "2024-05-21T12:40:31.787Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/58/23114f55f007e36b7f18bf72eca767c3152328a5cfe4b6f0b4fdd78382df/neuroHarmonize-2.4.5-py3-none-any.whl", hash = "sha256:28c06037e87614f263d75cb7ba4ded9be13496cb153f90e2f3649d961a4463e7", size = 16447, upload-time = "2024-05-21T12:40:28.738Z" },
+]
+
+[[package]]
 name = "neuromaps"
 version = "0.0.7"
 source = { registry = "https://pypi.org/simple" }
@@ -2194,6 +2209,8 @@ version = "2.0.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "neurocombat" },
+    { name = "neuroharmonize" },
     { name = "nibabel" },
     { name = "nilearn" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -2243,6 +2260,8 @@ requires-dist = [
     { name = "gemmr", marker = "extra == 'subtyping'", specifier = ">=0.4" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29" },
     { name = "matplotlib", specifier = ">=3.8" },
+    { name = "neurocombat", specifier = ">=0.2.12" },
+    { name = "neuroharmonize", specifier = ">=2.4.5" },
     { name = "neuromaps", marker = "extra == 'maps'", specifier = ">=0.0.5" },
     { name = "nibabel", specifier = ">=5.2" },
     { name = "nilearn", specifier = ">=0.11" },
