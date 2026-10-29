@@ -54,6 +54,8 @@ normative:                   # step 07 (user decisions 2026-10-27; analysis plan
     B: [PTA4, PTA_HF]
   references:                # who the model is trained on (only subjects in_case_control are scored)
     CO: {column: group, value: CO}        # primary: all non-tinnitus controls (CTRL + HLOS)
+                             # CO keeps site-/sex-specific variance: a shared-variance CO fit (2026-10-28) left residual
+                             # site differences in spread (Brown-Forsythe, FDR) in 1-3 features, so it failed calibration
     CTRL: {column: group4, value: CTRL, batch_variance: false}   # secondary: normal-hearing controls; one variance
                              # shared across sites/sexes (2026-10-28: site-specific variance from 6-9 controls at small
                              # sites gave heavy-tailed held-out z in 44-56 features)
@@ -63,12 +65,62 @@ normative:                   # step 07 (user decisions 2026-10-27; analysis plan
     dk_area: {table: dk, include: "^area__(lh|rh)_", exclude: "WhiteSurfArea", tiv: true}
     aseg: {table: aseg, include: "^(Left|Right)-(Thalamus|Caudate|Putamen|Pallidum|Hippocampus|Amygdala|Accumbens-area)$", tiv: true}
     subseg: {table: subseg, include: "^(hippo|amyg|thal)__", exclude: "fissure", tiv: true}
+  loso:                      # leave-one-site-out transfer check of the ROI models (scripts/07c_normative_loso.py)
+    references: [CO]
+    adapt_folds: 5           # within-site folds giving the left-out site's controls out-of-sample z (fewer if small)
+    min_profile_r: 0.8       # a site passes if the median per-subject deviation-profile r (full vs LOSO) >= this
+                             # and the mean LOSO z of its controls does not differ from 0 (95% CI)
+  maps:                      # phase 2 (scripts/07b_normative_maps.py): same BLR settings, batched over vertices/voxels
+    references: [CO]         # primary reference only at map level (compute); CTRL is covered at ROI level
+    chunk: 500               # features per SLURM task (each = 500 x 11 BLR fits)
+    sets:
+      vertex_thickness: {source: vertex, measure: thickness, tiv: false}   # features/vertex_fsavg5_fwhm10_<measure>.npy
+      vertex_area: {source: vertex, measure: area, tiv: true}
+      voxel_gm: {source: voxel, input: s6mwp1, tiv: true, tiv_column: cat12_TIV}   # CAT12 modulated GM, 6 mm
+    voxel_mm: 3              # CAT12 maps resampled from 1.5 mm
+    voxel_mask_threshold: 0.1  # keep voxels whose mean (resampled) modulated GM across subjects exceeds this
   calibration:               # D1: pooled thresholds; per site a 95% CI criterion (11-80 controls per site)
     pooled_mean_abs: 0.1
     pooled_sd: [0.9, 1.1]
     site_skew_abs: 1.0
-    site_fdr_q: 0.05         # no feature may show a site effect in held-out control z (one-way ANOVA, BH-FDR);
-                             # replaces the cross-validated site AUC, which anti-learns on site-centred z (2026-10-28)
+    feature: {mean_abs: 0.1, sd: [0.9, 1.1], skew_abs: 1.0}   # per feature; failing ROI features excluded from H2
+    maps: {max_frac_batch_hits: 0.01, max_frac_features_failing: 0.05}   # map level: bounded fractions instead
+    batch_fdr_q: 0.05        # no feature may show a residual site or sex effect in held-out control z, in mean
+                             # (one-way ANOVA) or spread (Brown-Forsythe), BH-FDR; replaces the cross-validated site
+                             # AUC, which anti-learns on site-centred z (2026-10-28)
+
+group:                       # step 08 (analysis plan 5.2, 5.3, 6.1; decisions D1-D4 2026-10-29)
+  age_df: 3                  # natural cubic spline of age
+  covariates: [sex, euler_total]   # + age spline; + hearing per model; + log eTIV for volumes/areas (D1)
+  families: [dk_thick, dk_area, aseg]   # normative.feature_sets entries; tiv: true = volumetric -> log (D1)
+  apriori:                   # H1b auditory-limbic family (16 measures)
+    - thick__lh_transversetemporal
+    - thick__rh_transversetemporal
+    - area__lh_transversetemporal
+    - area__rh_transversetemporal
+    - thal__Left-MGN
+    - thal__Right-MGN
+    - Left-Hippocampus
+    - Right-Hippocampus
+    - Left-Amygdala
+    - Right-Amygdala
+    - Left-Accumbens-area
+    - Right-Accumbens-area
+    - thick__lh_medialorbitofrontal
+    - thick__rh_medialorbitofrontal
+    - thick__lh_rostralanteriorcingulate
+    - thick__rh_rostralanteriorcingulate
+  h1a: [thick__lh_transversetemporal, thick__rh_transversetemporal]   # PTA4 effect, one-sided (negative)
+  subregions:                # three-tier rule (plan 5.3); whole structure from the same segmentation
+    hippo: {pattern: "^hippo__(lh|rh)_", whole: "hippo__{h}_Whole_hippocampus",
+            parts_exclude: "Whole_|fissure"}
+    amyg: {pattern: "^amyg__(lh|rh)_", whole: "amyg__{h}_Whole_amygdala", parts_exclude: "Whole_"}
+    thal: {pattern: "^thal__(Left|Right)-", whole: "thal__{h}-Whole_thalamus", parts_exclude: "Whole_"}
+  fdr_q: 0.05
+  tost_d: 0.2                # smallest effect size of interest for equivalence (H1b/H1c nulls, H1d)
+  spin_n: 10000
+  bootstrap_n: 5000          # H1d attenuation CIs (cluster)
+  spatial_r_max: 0.5         # H1c: tinnitus map not spatially equivalent to the hearing maps
 
 stats:
   n_perm: 5000
