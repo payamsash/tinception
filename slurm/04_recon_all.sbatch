@@ -8,7 +8,7 @@
 #SBATCH --time=08:00:00
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=48G   # 24G is OOM-killed during SynthSeg in FS 8.0.0
-#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129   # broken apptainer on these nodes (user ns / resolv.conf mount), 2026-09
+#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129,u24-chaiam0-613   # broken apptainer on these nodes (user ns / resolv.conf mount), 2026-09
 #SBATCH --output=logs/recon_%A_%a.out
 set -euo pipefail
 

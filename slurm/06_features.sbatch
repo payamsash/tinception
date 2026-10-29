@@ -7,7 +7,7 @@
 #SBATCH --time=04:00:00
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
-#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129
+#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129,u24-chaiam0-613
 #SBATCH --output=logs/features_%j.out
 set -euo pipefail
 export TINCEPTION_ENV=cluster

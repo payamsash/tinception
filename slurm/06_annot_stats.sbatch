@@ -6,7 +6,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
-#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129   # broken apptainer on these nodes (user ns / resolv.conf mount), 2026-09
+#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129,u24-chaiam0-613   # broken apptainer on these nodes (user ns / resolv.conf mount), 2026-09
 #SBATCH --output=logs/annot_%A_%a.out
 set -euo pipefail
 module load apptainer/1.5.0
