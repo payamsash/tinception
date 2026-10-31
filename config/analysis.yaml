@@ -128,6 +128,8 @@ h3:                          # dimensions and subtypes in patients (analysis pla
   features: F1F3             # DK thickness + 14 subcortical volumes, calibrated features only
   clinical: [distress_z, PTA4, PTA_HF]
   clinical_extra: [hyperacusis_z, affect_z, log_duration]   # exploratory, added one at a time
+  hearing: [PTA4, PTA_HF]     # hearing-only PLS (plan 6.9 A)
+  validation: [hyperacusis_z, affect_z, log_duration, distress_z]   # subtype criterion 5 (not used for clustering)
   n_perm: 10000              # within-site permutations (PLS mode 1 and its leave-one-site-out replication)
   n_boot: 1000               # bootstrap ratios of the PLS weights
   pca_var: 0.8               # D3: PCA on held-out control deviations, components up to 80% variance
@@ -137,6 +139,14 @@ h3:                          # dimensions and subtypes in patients (analysis pla
   min_stability_ari: 0.6
   min_loso_ari: 0.5
   max_site_cramers_v: 0.2
+
+network:                     # plan 6.9 B: hub / epicentre models with ENIGMA Toolbox normative HCP connectivity (DK)
+  spin_n: 10000              # group maps (cortex); subcortical maps: shuffle null with the same n
+  subject_spin_n: 1000       # per-subject epicentres
+  alpha_subject: 0.05        # per-subject epicentre: spin p below this
+  deviation_models: [B, A]   # per-subject epicentres: Model B primary (as H2), A secondary
+  h3_model: B                # H3 maps: the confound-regressed mode that replicated (plan 6.9 A) is Model B
+  h1_contrasts: {tinnitus: tinnitus, PTA4: PTA4, PTA_HF_beyond_PTA4: PTA_HF_beyond_PTA4}
 
 stats:
   n_perm: 5000
