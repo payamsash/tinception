@@ -3,7 +3,7 @@
 #SBATCH --time=02:00:00
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
-#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129
+#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129,u24-chaiam0-613
 #SBATCH --output=logs/asegchk_%j.out
 # Usage: sbatch slurm/check_aseg.sbatch [<SUBJECTS_DIR> [<out.tsv>]]
 # default output is named after the tree: features/aseg_consistency_<basename of SUBJECTS_DIR>.tsv
