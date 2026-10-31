@@ -314,13 +314,10 @@ def cmd_h2(args: argparse.Namespace) -> None:
     ok = {m: pd.read_csv(norm / "CO" / m / "feature_calibration.tsv", sep="\t", index_col=0).ok for m in ncfg["models"]}
     zs = {m: _held_out(master, pd.read_csv(norm / "CO" / m / "z_all.tsv", sep="\t", na_values="n/a"))
           for m in ncfg["models"]}
-    aseg = ncore.select_features(pd.DataFrame(columns=list(ok["B"].index)), ncfg["feature_sets"]["aseg"]["include"])
 
     def feats(model: str, which: str) -> list[str]:
-        good = ok[model][ok[model]].index.tolist()  # features failing calibration are excluded (plan 6.3)
-        if which == "all":
-            return good
-        return [f for f in good if f.startswith("thick__") or f in aseg]   # F1 + F3
+        # features failing calibration are excluded (plan 6.3)
+        return ok[model][ok[model]].index.tolist() if which == "all" else ncore.f1f3(ok[model], ncfg)
 
     # H2a: burden, patients vs held-out controls (Model B primary; positive and negative separately, Holm over 2)
     rows = []
@@ -464,6 +461,30 @@ def _andes_t2pial(df: pd.DataFrame, feat_dir: Path, cols: list[str]) -> pd.DataF
     return out
 
 
+def _per_site_effects(prim: pd.DataFrame, spec: dict, main_terms: list[str]) -> pd.DataFrame:
+    """Tinnitus effect (adjusted d, HC3 SE) of every a priori measure within each site of the primary sample; PTA_HF
+    residualized within the site, linear age (small n). Sites without both groups or with < 10 rows are skipped."""
+    from patsy import PatsyError
+
+    rows = []
+    for site, d_site in prim.groupby("site"):
+        d_site = g.residualize(d_site.reset_index(drop=True), "PTA_HF", ["PTA4"], "PTA_HF_res")
+        for o in spec["apriori"]:
+            d = g.prepare(d_site, [o], spec["volumetric"])
+            r_ = g.rhs(main_terms, 1, o in spec["volumetric"])
+            f = g.fit_frame(d, "y0", r_, CONTINUOUS)
+            if f.tinnitus.nunique() < 2 or len(f) < 10:
+                continue
+            try:
+                e = rb.wls_effect(f, "y0", r_, "tinnitus", site=None)
+            except (ValueError, KeyError, PatsyError, np.linalg.LinAlgError):
+                continue
+            if np.isfinite(e["se"]) and e["se"] > 0:
+                rows.append({"site": site, "outcome": o, "beta": e["beta"], "se": e["se"], "n": e["n"],
+                             "n_ti": int(f.tinnitus.sum())})
+    return pd.DataFrame(rows)
+
+
 def cmd_robust(args: argparse.Namespace) -> None:
     """08c robustness (plan 6.8) of H1 (tinnitus effects: a priori family + DK/subcortical families) and of the
     primary H2a test, under every sensitivity condition, plus leave-one-site-out and a per-site meta-analysis."""
@@ -529,26 +550,10 @@ def cmd_robust(args: argparse.Namespace) -> None:
     summ.to_csv(out / "h1_summary.tsv", sep="\t", index=False)
 
     # per-site tinnitus effects (a priori family) and random-effects meta-analysis
-    from patsy import PatsyError
-
-    per_site = {site: resid(d_site) for site, d_site in prim.groupby("site")}
-    meta = []
-    for o in spec["apriori"]:
-        es, ses = [], []
-        for d_site in per_site.values():
-            d = g.prepare(d_site, [o], spec["volumetric"])
-            r_ = g.rhs(main_terms, 1, o in spec["volumetric"])  # linear age within a site (small n)
-            f = g.fit_frame(d, "y0", r_, CONTINUOUS)
-            if f.tinnitus.nunique() < 2 or len(f) < 10:
-                continue
-            try:
-                e = rb.wls_effect(f, "y0", r_, "tinnitus", site=None)
-            except (ValueError, KeyError, PatsyError, np.linalg.LinAlgError):
-                continue
-            if np.isfinite(e["se"]) and e["se"] > 0:
-                es.append(e["beta"])
-                ses.append(e["se"])
-        meta.append({"outcome": o, **rb.dl_meta(np.array(es), np.array(ses))})
+    ps = _per_site_effects(prim, spec, main_terms)
+    ps.to_csv(out / "per_site_effects.tsv", sep="\t", index=False)
+    meta = [{"outcome": o, **rb.dl_meta(d_o.beta.to_numpy(), d_o.se.to_numpy())}
+            for o, d_o in ps.groupby("outcome", sort=False)]
     pd.DataFrame(meta).to_csv(out / "meta_per_site.tsv", sep="\t", index=False)
 
     # H2a primary under the subject-subset conditions
@@ -557,8 +562,7 @@ def cmd_robust(args: argparse.Namespace) -> None:
     master = pd.read_csv(args.master or p.root / "tinception_master.tsv", sep="\t", na_values="n/a",
                          low_memory=False)[[g.ID, "site", "group", "euler_total", "qc_strict_exclude"]]
     ok = pd.read_csv(norm / "feature_calibration.tsv", sep="\t", index_col=0).ok
-    aseg = ncore.select_features(pd.DataFrame(columns=list(ok.index)), ncfg["feature_sets"]["aseg"]["include"])
-    fl = [f for f in ok[ok].index if f.startswith("thick__") or f in aseg]
+    fl = ncore.f1f3(ok, ncfg)
     zB = _held_out(master.drop(columns="qc_strict_exclude"), pd.read_csv(norm / "z_all.tsv", sep="\t", na_values="n/a"))
     c = h2.counts(zB, fl, ncfg["extreme_z"]).merge(
         zB[[g.ID, "tinnitus", "site", "euler_total"]], on=g.ID).merge(master[[g.ID, "qc_strict_exclude"]], on=g.ID)
@@ -682,6 +686,91 @@ def cmd_h1d_ci(args: argparse.Namespace) -> None:
           .to_string(index=False))
 
 
+def cmd_global_fdr(args: argparse.Namespace) -> None:
+    """Sensitivity (plan 6.2, added 2026-10-31): one BH-FDR family per model x contrast over every distinct outcome of
+    the H1 models (DK thickness, DK area, aseg, whole structures, tier-2 subregions), instead of one family per
+    measure type. Excluded: the a priori family (its outcomes are already in the pool) and tier-3 specificity models
+    (a different question). Reads h1/models.tsv -> h1/global_fdr.tsv, h1/global_fdr.json."""
+    out = (args.out or config.paths().results / "08_group") / "h1"
+    m = pd.read_csv(out / "models.tsv", sep="\t", na_values="n/a")
+    pool = m[~m.family.isin(["apriori", "controls", "h1a"]) & ~m.family.str.startswith("tier3_")]
+    pool = pool.drop_duplicates(["model", "contrast", "outcome"]).copy()
+    conv = pool.converged.astype(str).str.lower().eq("true")
+    pool["q_global"] = np.nan
+    for idx in pool[conv].groupby(["model", "contrast"]).groups.values():
+        pool.loc[idx, "q_global"] = g.bh(pool.loc[idx, "p"]).to_numpy()
+    pool.to_csv(out / "global_fdr.tsv", sep="\t", index=False, na_rep="n/a")
+    summ = pool.groupby(["model", "contrast"]).agg(n_tests=("p", "size"), hits_family=("q", lambda q: int((q < 0.05).sum())),
+                                                   hits_global=("q_global", lambda q: int((q < 0.05).sum())),
+                                                   min_q_global=("q_global", "min")).reset_index()
+    hits = pool[pool.q_global < 0.05][["model", "contrast", "family", "outcome", "beta", "p", "q", "q_global"]]
+    (out / "global_fdr.json").write_text(json.dumps(g.json_clean({"summary": summ.to_dict("records"),
+                                                                  "hits": hits.to_dict("records")}),
+                                                    indent=2, allow_nan=False))
+    print(summ.to_string(index=False))
+    print(hits.to_string(index=False) if len(hits) else "no global-FDR hits")
+
+
+def cmd_sites(args: argparse.Namespace) -> None:
+    """Site diagnostics of the H1 tinnitus effects (plan 6.8, added 2026-10-31), a priori family: per-site effects,
+    leave-one-site-out influence on the pooled effect and outlier tests (BH over site x measure), and random-effects
+    meta-regressions of per-site effects on site data quality (median Euler, median CAT12 IQR, held-out control z SD
+    and LOSO deviation-profile r of the normative Model A, vendor). -> robust/sites_{effects,quality,metareg}.tsv,
+    robust/sites.json"""
+    df, spec, _ = load(args)
+    p = config.paths()
+    out = (args.out or p.results / "08_group") / "robust"
+    out.mkdir(parents=True, exist_ok=True)
+    prim = sample(df, "primary")
+    ps = _per_site_effects(prim, spec, ["tinnitus", *HEARING, *covariates()])
+    parts = []
+    for o, d_o in ps.groupby("outcome", sort=False):
+        loo = rb.leave_one_out_meta(d_o.beta.to_numpy(), d_o.se.to_numpy())
+        parts.append(pd.concat([d_o.reset_index(drop=True), loo], axis=1))
+    eff = pd.concat(parts, ignore_index=True)
+    eff["q_outlier"] = g.bh(eff.p_outlier).to_numpy()
+    eff.to_csv(out / "sites_effects.tsv", sep="\t", index=False, na_rep="n/a")
+
+    master = pd.read_csv(args.master or p.root / "tinception_master.tsv", sep="\t", na_values="n/a",
+                         low_memory=False)[[g.ID, "site", "scanner_vendor", "field_T", "euler_total", "cat12_IQR"]]
+    qm = master[master[g.ID].isin(prim[g.ID])].groupby("site").agg(
+        vendor=("scanner_vendor", "first"), field_T=("field_T", "first"), euler_median=("euler_total", "median"),
+        cat12_iqr_median=("cat12_IQR", "median"))
+    norm = p.derivatives / "normative"
+    cal = pd.read_csv(norm / "CO" / "A" / "calibration_site.tsv", sep="\t").set_index("site")
+    loso = pd.read_csv(norm / "loso" / "CO" / "A" / "summary_site.tsv", sep="\t").set_index("site")
+    qual = qm.join(cal[["sd"]].rename(columns={"sd": "ctrl_z_sd"})).join(
+        loso[["profile_r_median"]].rename(columns={"profile_r_median": "loso_profile_r"}))
+    qual["philips"] = qual.vendor.eq("Philips").astype(float)
+    site_sum = eff.groupby("site").agg(n=("n", "max"), n_ti=("n_ti", "max"), mean_d=("beta", "mean"),
+                                       n_abs_z_gt_1_96=("z_outlier", lambda z: int((z.abs() > 1.96).sum())),
+                                       max_abs_shift=("shift", lambda x: float(x.abs().max())),
+                                       min_q_outlier=("q_outlier", "min"))
+    qual = qual.join(site_sum, how="right")
+    qual.to_csv(out / "sites_quality.tsv", sep="\t", na_rep="n/a")
+
+    mods = ["euler_median", "cat12_iqr_median", "ctrl_z_sd", "loso_profile_r", "philips"]
+    reg = []
+    for o, d_o in eff.groupby("outcome", sort=False):
+        x = qual.loc[d_o.site]
+        for mname in mods:
+            reg.append({"outcome": o, "moderator": mname,
+                        **rb.meta_regression(d_o.beta.to_numpy(), d_o.se.to_numpy(), x[mname].to_numpy(float))})
+    reg = pd.DataFrame(reg)
+    reg["q"] = reg.groupby("moderator", group_keys=False).p.apply(g.bh)
+    reg.to_csv(out / "sites_metareg.tsv", sep="\t", index=False, na_rep="n/a")
+    summary = {"n_site_measure_cells": len(eff), "outliers_q05": eff[eff.q_outlier < 0.05][
+                   ["site", "outcome", "beta", "z_outlier", "q_outlier"]].to_dict("records"),
+               "abs_z_gt_1_96": int((eff.z_outlier.abs() > 1.96).sum()),
+               "abs_z_gt_1_96_expected": round(0.05 * len(eff), 1),
+               "max_abs_shift_pooled_d": float(eff["shift"].abs().max()),
+               "metareg_q05": reg[reg.q < 0.05][["outcome", "moderator", "slope", "p", "q"]].to_dict("records"),
+               "metareg_min_p_by_moderator": reg.groupby("moderator").p.min().to_dict()}
+    (out / "sites.json").write_text(json.dumps(g.json_clean(summary), indent=2, allow_nan=False))
+    print(qual.round(3).to_string())
+    print(json.dumps(g.json_clean(summary), indent=2))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--master", type=Path, default=None)
@@ -699,6 +788,8 @@ def main() -> None:
     b.add_argument("--task", type=int, required=True, help="1-based row of h1d_tasks.tsv (SLURM_ARRAY_TASK_ID)")
     b.set_defaults(func=cmd_h1d_boot)
     sub.add_parser("h1d-ci").set_defaults(func=cmd_h1d_ci)
+    sub.add_parser("global-fdr").set_defaults(func=cmd_global_fdr)
+    sub.add_parser("sites").set_defaults(func=cmd_sites)
     args = ap.parse_args()
     args.func(args)
 
