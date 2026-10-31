@@ -122,6 +122,22 @@ group:                       # step 08 (analysis plan 5.2, 5.3, 6.1; decisions D
   bootstrap_n: 5000          # H1d attenuation CIs (cluster)
   spatial_r_max: 0.5         # H1c: tinnitus map not spatially equivalent to the hearing maps
 
+h3:                          # dimensions and subtypes in patients (analysis plan 6.5; decisions D1-D3 2026-10-30)
+  model_primary: A           # D1: Model A deviations (hearing variance still present); Model B secondary
+  model_secondary: B
+  features: F1F3             # DK thickness + 14 subcortical volumes, calibrated features only
+  clinical: [distress_z, PTA4, PTA_HF]
+  clinical_extra: [hyperacusis_z, affect_z, log_duration]   # exploratory, added one at a time
+  n_perm: 10000              # within-site permutations (PLS mode 1 and its leave-one-site-out replication)
+  n_boot: 1000               # bootstrap ratios of the PLS weights
+  pca_var: 0.8               # D3: PCA on held-out control deviations, components up to 80% variance
+  ks: [1, 2, 3, 4, 5, 6]
+  null_sims: 200             # no-cluster Gaussian null
+  stability_boot: 200
+  min_stability_ari: 0.6
+  min_loso_ari: 0.5
+  max_site_cramers_v: 0.2
+
 stats:
   n_perm: 5000
   fdr_alpha: 0.05
