@@ -121,6 +121,9 @@ group:                       # step 08 (analysis plan 5.2, 5.3, 6.1; decisions D
   spin_n: 10000
   bootstrap_n: 5000          # H1d attenuation CIs (cluster)
   spatial_r_max: 0.5         # H1c: tinnitus map not spatially equivalent to the hearing maps
+  patients:                  # within-patient associations (plan 6.6; operationalized 2026-10-31)
+    primary: distress_z
+    secondary: [hyperacusis_z, affect_z, log_duration]
 
 h3:                          # dimensions and subtypes in patients (analysis plan 6.5; decisions D1-D3 2026-10-30)
   model_primary: A           # D1: Model A deviations (hearing variance still present); Model B secondary
@@ -147,6 +150,75 @@ network:                     # plan 6.9 B: hub / epicentre models with ENIGMA To
   deviation_models: [B, A]   # per-subject epicentres: Model B primary (as H2), A secondary
   h3_model: B                # H3 maps: the confound-regressed mode that replicated (plan 6.9 A) is Model B
   h1_contrasts: {tinnitus: tinnitus, PTA4: PTA4, PTA_HF_beyond_PTA4: PTA_HF_beyond_PTA4}
+
+codeviation:                 # plan 6.9 D: coordinated co-deviation (Hettwer et al. 2022)
+  models: [B, A]             # Model B primary (as H2), A secondary
+  n_perm: 5000               # group labels permuted within site (global tests)
+  spin_n: 5000               # connectome alignment: rows/columns of the co-deviation matrix spun together
+
+maps_palm:                   # vertex / VBM group maps (plan 6.6; user decisions D1-D6 2026-10-31)
+  palm: /shares/tinnitus.orl.med.uzh/containers/PALM   # git clone andersonwinkler/PALM (commit 7c00e18, 2026-10-19)
+  matlab_module: matlab/r2024b
+  n_perm: 5000               # vertex maps: exact permutations
+  accel_tail: false
+  vbm_n_perm: 500            # D5 fallback (pilot 2026-11-03: ~111 s per permutation at 1.5 mm, 5,000 = ~150 h):
+  vbm_accel_tail: true       # 500 permutations + generalized-Pareto tail approximation (Winkler et al. 2016)
+  vbm_mask_threshold: 0.1    # mean smoothed modulated GM across the analysed subjects
+  min_site_n: 3              # each site is its own variance group (-vg auto); smallest in use: 5 (clean sample)
+  analyses:                  # name: {sample, modality, terms, contrasts}
+    thick_main:  {sample: primary, modality: thickness, contrasts: [tinnitus, PTA4, PTA_HF_res]}
+    area_main:   {sample: primary, modality: area, contrasts: [tinnitus, PTA4, PTA_HF_res]}
+    vbm6_main:   {sample: primary, modality: vbm6, contrasts: [tinnitus, PTA4, PTA_HF_res]}
+    vbm8_main:   {sample: primary, modality: vbm8, contrasts: [tinnitus]}
+    thick_clean: {sample: clean, modality: thickness, contrasts: [tinnitus]}
+    area_clean:  {sample: clean, modality: area, contrasts: [tinnitus]}
+    vbm6_clean:  {sample: clean, modality: vbm6, contrasts: [tinnitus]}
+    thick_hyperacusis: {sample: hyperacusis, modality: thickness, contrasts: [hyperacusis_z]}
+
+prediction:                  # leave-site-out prediction (plan 6.8, added 2026-11-03)
+  n_perm: 1000
+  tasks: [T1_tinnitus, T2_TNHL_vs_HLOS, T3_TINN_vs_CTRL, T4_distress, P1_age, P2_PTA4]
+  primary_family: [T1_tinnitus, T2_TNHL_vs_HLOS, T3_TINN_vs_CTRL, T4_distress]   # Holm
+  embedding_tasks: [T1_tinnitus, T2_TNHL_vs_HLOS, T3_TINN_vs_CTRL, T4_distress, P1_age, P3_sex]   # plan 6.11 B
+
+small_studies:               # plan 6.10 A (fixed 2026-11-03 before running)
+  n_draws: 5000
+  n_per_group: [20, 30, 50, 100]
+  modes: [within_site, across_sites]
+  literature_regions:        # regions reported in prior work (3.2b), for hit frequencies
+    UKB_2025: [Left-Thalamus, Right-Thalamus, thick__lh_precuneus, thick__rh_precuneus, thick__lh_superiorparietal,
+               thick__lh_rostralmiddlefrontal, thick__rh_parstriangularis]
+    Makani_2022: [thick__lh_rostralanteriorcingulate, thick__lh_medialorbitofrontal, thick__lh_inferiortemporal,
+                  thick__lh_middletemporal, thick__rh_cuneus, thick__lh_lingual, thick__rh_lingual,
+                  thick__rh_posteriorcingulate, thick__lh_precuneus]
+    Husain_2026: [thick__rh_posteriorcingulate, area__rh_posteriorcingulate, area__lh_posteriorcingulate,
+                  area__lh_parsopercularis, area__rh_parsopercularis]
+
+mind:                        # plan 6.12 (user decisions 2026-11-03): official implementation, unchanged
+  code: /shares/tinnitus.orl.med.uzh/containers/MIND   # git clone isebenius/MIND, commit 0d33445 (2024-03-12); no license file -> not vendored
+  features: [CT, MC, Vol, SD, SA]                      # README default (thickness, curvature, volume, sulc, area)
+  primary: dk
+  parcellations:
+    dk: aparc
+    hcpmmp: HCPMMP1
+    schaefer100: Schaefer2018_100Parcels_7Networks_order
+    schaefer200: Schaefer2018_200Parcels_7Networks_order
+    schaefer400: Schaefer2018_400Parcels_7Networks_order
+  gradients: {n_components: 3, approach: dm, kernel: normalized_angle, sparsity: 0.9}
+
+meta_peaks:                  # plan 6.10 B1: published meta-analytic peaks (Makani et al. 2022, SDM-PSI, MNI mm)
+  radius_mm: 6
+  peaks:                     # name: [x, y, z, published direction (+1 more GM in tinnitus / -1 less), contrast]
+    all_L_ACC_mPFC: [-12, 44, 8, -1, all]
+    all_L_ITG: [-54, -10, -34, -1, all]
+    all_L_MTG: [-62, -16, -14, -1, all]
+    matched_R_cuneus: [16, -94, 24, 1, all]
+    matched_lingual_cerebellum: [20, -52, 2, 1, all]
+    matched_R_PCC: [0, -42, 46, 1, all]
+    matched_L_precuneus: [-38, -78, 14, 1, all]
+    NH_L_ITG: [-52, -6, -30, -1, normal_hearing]
+    HL_R_lingual_precuneus: [18, -56, 0, 1, hearing_loss]
+    HL_L_precuneus_lingual: [-14, -68, 38, 1, hearing_loss]
 
 stats:
   n_perm: 5000
