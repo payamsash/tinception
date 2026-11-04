@@ -49,8 +49,8 @@ def pls_block(d: pd.DataFrame, feats: list[str], clin: list[str], hcfg: dict, se
     if centering == "site":  # only within-site brain-clinical covariation
         X, Y = h3.center_within(X, site), h3.center_within(Y, site)
     res = h3.pls_test(X, Y, site, hcfg["n_perm"], seed)
-    rep = h3.pls_loso(X, Y, site, hcfg["n_perm"], seed + 1)
-    bsr_u, bsr_v = h3.pls_bootstrap(X, Y, site, hcfg["n_boot"], seed + 2, res["U"], res["V"])
+    rep = h3.pls_loso(X, Y, site, res["U_all"], res["V_all"], hcfg["n_perm"], seed + 1)
+    bsr_u, bsr_v = h3.pls_bootstrap(X, Y, site, hcfg["n_boot"], seed + 2, res["U_all"], res["V_all"])
     try:
         n_req = int(np.ceil(np.nanmax(list(gemmr.pls_sample_size(X, Y, rs=(0.3,)).values()))))
     except (ValueError, RuntimeError, KeyError, IndexError) as err:  # gemmr's interpolation can fail outside its simulated range
@@ -65,7 +65,7 @@ def pls_block(d: pd.DataFrame, feats: list[str], clin: list[str], hcfg: dict, se
 
 
 def subtypes(z: pd.DataFrame, feats: list[str], master: pd.DataFrame, hcfg: dict, seed: int) -> dict:
-    zz = z.merge(master[[ID, "site", "group", "hyperacusis_z", "affect_z", "log_duration", "distress_z"]], on=ID)
+    zz = z.merge(master[[ID, "site", "group", *hcfg["validation"]]], on=ID)
     zz = zz.dropna(subset=[*feats, "site"])
     ctrl, pat = zz[zz.reference.astype(bool)], zz[zz.group.eq("TI")]
     S, k_pc = h3.pca_from_controls(ctrl[feats].to_numpy(float), pat[feats].to_numpy(float), hcfg["pca_var"])
@@ -83,7 +83,7 @@ def subtypes(z: pd.DataFrame, feats: list[str], master: pd.DataFrame, hcfg: dict
             "stability_ari": h3.stability_ari(S, labels, k, hcfg["stability_boot"], seed),
             "loso_ari": h3.loso_ari(S, site, labels, k, seed), "site_cramers_v": h3.cramers_v(labels, site)}
     val = {}  # clusters with < 5 patients with the variable -> not tested (reported via cluster_sizes)
-    for v in ("hyperacusis_z", "affect_z", "log_duration", "distress_z"):
+    for v in hcfg["validation"]:
         x = pat[v].to_numpy(float)
         grp = [x[(labels == c) & np.isfinite(x)] for c in range(k)]
         if all(len(a) >= 5 for a in grp):
@@ -130,12 +130,12 @@ def confound_block(x: pd.DataFrame, feats: list[str], clin: list[str], hcfg: dic
     return modes, w, {"U": res["U"], "V": res["V"]}
 
 
-def run_confound(args: argparse.Namespace, cfg: dict, p, master: pd.DataFrame, out: Path) -> None:
+def run_confound(cfg: dict, p, master: pd.DataFrame, out: Path) -> None:
     hcfg, ncfg, seed, age_df = cfg["h3"], cfg["normative"], cfg["seed"], cfg["group"]["age_df"]
     out = out / "confound"
     out.mkdir(parents=True, exist_ok=True)
     norm = p.derivatives / "normative"
-    hearing = ["PTA4", "PTA_HF"]
+    hearing = hcfg["hearing"]
     modes, weights, proj = [], [], []
     cols = [ID, "site", "group", "age", "sex", *hcfg["clinical"], *hcfg["clinical_extra"]]
     for model in (hcfg["model_primary"], hcfg["model_secondary"]):
@@ -198,7 +198,7 @@ def main() -> None:
     master = pd.read_csv(args.master or p.root / "tinception_master.tsv", sep="\t", na_values="n/a", low_memory=False)
     master = master.assign(log_duration=np.log1p(master.duration_months))
     if args.part == "confound":
-        run_confound(args, cfg, p, master, out)
+        run_confound(cfg, p, master, out)
         return
     norm = p.derivatives / "normative"
     rows, weights, subs = [], [], {}
