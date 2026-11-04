@@ -17,6 +17,15 @@ Subcommands
            sensitivity condition, leave-one-site-out, per-site meta-analysis -> <results>/08_group/robust/
   table1   TI vs CO descriptives per sample (pingouin: Welch t + Hedges g, chi-square + Cramer V) -> h1/table1.tsv
   h1d-tasks / h1d-boot / h1d-ci   bootstrap 95% CIs of the H1d attenuations (5,000 resamples within site; cluster)
+  global-fdr   one BH family per model x contrast over all H1 outcomes (sensitivity) -> h1/global_fdr.{tsv,json}
+  sites        per-site effects, leave-one-site-out influence, meta-regression on site quality
+               -> robust/sites_{effects,quality,metareg}.tsv, robust/sites.json
+  interaction  tinnitus x PTA4 / PTA_HF_res (selection-free families + circular composite of the H3 hearing mode)
+               -> interaction/{models.tsv, summary.json}
+  patients     within-patient clinical associations (all patient sites) and TINN vs TNHL -> patients/
+  hyperacusis  robustness of the hyperacusis association (leave-one-site-out, per site, meta, BF)
+  evidence     Bayes factors (Cauchy .707 / Normal .2 priors) and minimum detectable effects of the tinnitus effect
+               -> h1/evidence.{tsv,json}
 Hearing terms: PTA4 (overall hearing) and PTA_HF_res = PTA_HF residualized on PTA4 within the sample (r = 0.86), with a
 joint Wald test of both ("hearing_joint"); the tinnitus coefficient is the same as with raw PTA_HF.
 
@@ -48,15 +57,17 @@ def covariates() -> list[str]:
     return [f"C({c})" if c == "sex" else c for c in config.analysis()["group"]["covariates"]]
 
 
-def load(args: argparse.Namespace) -> tuple[pd.DataFrame, dict, dict]:
-    """Case-control subjects with every outcome; outcome -> volumetric flag; subregion tier info."""
+def load(args: argparse.Namespace, population: str = "case_control") -> tuple[pd.DataFrame, dict, dict]:
+    """Subjects of `population` (case_control: in_case_control; patients: in_patients, incl. the patient-only sites)
+    with every outcome; outcome -> volumetric flag; subregion tier info."""
     p, cfg = config.paths(), config.analysis()
     gcfg, fsets = cfg["group"], cfg["normative"]["feature_sets"]
     master = pd.read_csv(args.master or p.root / "tinception_master.tsv", sep="\t", na_values="n/a", low_memory=False)
     feat_dir = args.features_dir or p.derivatives / "features"
-    m = master[master.in_case_control.astype(bool)][[g.ID, "site", "sex", "age", "group", "group4", "group4_hf",
-                                                     "PTA4", "PTA_HF", "PTA_EHF", "HL", "HL_HF", "euler_total", "eTIV",
-                                                     "qc_strict_exclude", "affect_z"]].copy()
+    pop_col = {"case_control": "in_case_control", "patients": "in_patients"}[population]
+    m = master[master[pop_col].astype(bool)][[
+        g.ID, "site", "sex", "age", "group", "group4", "group4_hf", "PTA4", "PTA_HF", "PTA_EHF", "HL", "HL_HF",
+        "euler_total", "eTIV", "qc_strict_exclude", "affect_z", "distress_z", "hyperacusis_z", "duration_months"]].copy()
     m["tinnitus"] = m.group.eq("TI").astype(int)
     m["HL"] = m.HL.astype(float)
     m["HL_HF"] = m.HL_HF.astype(float)
@@ -110,13 +121,13 @@ HEARING = ["PTA4", "PTA_HF_res"]           # PTA4 = overall hearing; PTA_HF_res 
 
 def run(df_s: pd.DataFrame, outcomes: list[str], terms: list[str], contrasts: dict, family: str, spec: dict,
         gcfg: dict, rest: bool = False, tost: bool = True, joints: dict | None = None,
-        age_df: int | None = None) -> pd.DataFrame:
+        age_df: int | None = None, extra_continuous: tuple[str, ...] = ()) -> pd.DataFrame:
     """Log-transform volumetric outcomes and fit one family under one model (standardization inside fit)."""
     d = g.prepare(df_s, outcomes, spec["volumetric"])
     inv = {v: k for k, v in d.attrs["outcomes"].items()}
     rhs = {inv[o]: g.rhs(list(terms) + ([spec["tiers"][o]["rest_col"]] if rest else []), age_df or gcfg["age_df"],
                          o in spec["volumetric"]) for o in outcomes}
-    cont = list(CONTINUOUS) + ([spec["tiers"][o]["rest_col"] for o in outcomes] if rest else [])
+    cont = [*CONTINUOUS, *extra_continuous] + ([spec["tiers"][o]["rest_col"] for o in outcomes] if rest else [])
     return g.run_family(d, rhs, contrasts, family, gcfg["tost_d"] if tost else None, cont, joints)
 
 
@@ -771,6 +782,251 @@ def cmd_sites(args: argparse.Namespace) -> None:
     print(json.dumps(g.json_clean(summary), indent=2))
 
 
+def cmd_interaction(args: argparse.Namespace) -> None:
+    """Tinnitus x hearing interaction (plan 6.9 A follow-up, added 2026-10-31): do patients' structure-hearing slopes
+    differ from controls'? Primary sample, mixed model with tinnitus * PTA4 + tinnitus * PTA_HF_res + covariates;
+    contrasts: the two interaction terms (+ their joint Wald test) and the PTA4 slope in controls and in patients.
+    Selection-free families (DK thickness, DK area, aseg; BH within family x contrast), plus a descriptive composite
+    of the regions selected by the Model B hearing mode in patients (circular; |BSR| > 3 in 09_h3/confound).
+    -> <results>/08_group/interaction/{models.tsv, summary.json}"""
+    df, spec, gcfg = load(args)
+    p = config.paths()
+    cfg = config.analysis()
+    wfile = p.results / "09_h3" / "confound" / "weights.tsv"   # read first: fail before the model fits
+    if not wfile.exists():
+        raise SystemExit(f"{wfile} missing: run scripts/09_dimensions.py --part confound first")
+    w = pd.read_csv(wfile, sep="\t")
+    out = (args.out or p.results / "08_group") / "interaction"
+    out.mkdir(parents=True, exist_ok=True)
+    prim = sample(df, "primary")
+    terms = ["tinnitus * PTA4", "tinnitus * PTA_HF_res", *covariates()]
+    con = {"tinnitus:PTA4": {"tinnitus:PTA4": 1.0}, "tinnitus:PTA_HF_res": {"tinnitus:PTA_HF_res": 1.0},
+           "PTA4_controls": {"PTA4": 1.0}, "PTA4_patients": {"PTA4": 1.0, "tinnitus:PTA4": 1.0}}
+    jt = {"interaction_joint": ["tinnitus:PTA4", "tinnitus:PTA_HF_res"]}
+    res = [run(prim, cols, terms, con, f, spec, gcfg, tost=False, joints=jt) for f, cols in spec["families"].items()]
+    sel = w[(w.model == cfg["network"]["h3_model"]) & (w["sample"] == "patients")
+            & (w.clinical == "+".join(cfg["h3"]["clinical"])) & (w["mode"] == 1) & (w.side == "brain")
+            & (w.bsr.abs() > 3)].set_index("variable").bsr
+    thick = sel[sel.index.str.startswith("thick__")]
+    if len(thick) < len(sel):
+        print(f"composite: thickness only; not included: {sel.index[~sel.index.str.startswith('thick__')].tolist()}")
+    if len(thick):  # signed mean of within-sample z-scored thickness of the selected regions (sign of each BSR)
+        cols = thick.index.tolist()
+        zt = (prim[cols] - prim[cols].mean()) / prim[cols].std()
+        prim = prim.assign(composite_mode1=(zt * np.sign(thick.to_numpy())).mean(axis=1))
+        res.append(run(prim, ["composite_mode1"], terms, con, "composite_selected_circular", spec, gcfg, tost=False,
+                       joints=jt))
+    m = pd.concat(res, ignore_index=True)
+    m.to_csv(out / "models.tsv", sep="\t", index=False, na_rep="n/a")
+    inter = m[m.contrast.isin(["tinnitus:PTA4", "tinnitus:PTA_HF_res", "interaction_joint"])
+              & m.family.ne("composite_selected_circular")]   # selection-free families only
+    summary = {"n": int(m.n.max()), "selected_regions": thick.to_dict(),
+               "hits_q05": inter[inter.q < gcfg["fdr_q"]][["family", "outcome", "contrast", "beta", "p", "q"]].to_dict("records"),
+               "min_q_by_family_contrast": {f"{f} | {c}": q for (f, c), q in
+                                            inter.groupby(["family", "contrast"]).q.min().items()},
+               "composite": m[m.family == "composite_selected_circular"][["contrast", "beta", "se", "p"]]
+               .to_dict("records")}
+    (out / "summary.json").write_text(json.dumps(g.json_clean(summary), indent=2, allow_nan=False, default=str))
+    print(json.dumps(g.json_clean(summary), indent=2, default=str))
+
+
+def cmd_evidence(args: argparse.Namespace) -> None:
+    """Evidence of absence (plan 6.2, added 2026-10-31) for the tinnitus effect: Bayes factors from each mixed-model
+    estimate and SE (Cauchy(0, .707) primary, Normal(0, .2) sensitivity; outcomes standardized, so beta = adjusted d)
+    and the minimum detectable effect (80 % power, alpha .05; and Bonferroni over the a priori family), for the
+    main, PTA4-only and clean-hearing models. Reads h1/models.tsv -> h1/evidence.tsv, h1/evidence.json."""
+    from tinception.stats import evidence as ev
+
+    gcfg = config.analysis()["group"]
+    out = (args.out or config.paths().results / "08_group") / "h1"
+    m = pd.read_csv(out / "models.tsv", sep="\t", na_values="n/a")
+    keep = m.model.isin(["main", "pta4only", "clean_hearing"]) & m.contrast.eq("tinnitus") & m.family.isin(
+        ["apriori", "dk_thick", "dk_area", "aseg", "subregion_whole"])
+    conv = m.converged.astype(str).str.lower().eq("true")   # as FDR: non-converged fits are not evaluated
+    e = m[keep & conv][["model", "family", "outcome", "beta", "se", "ci_lo", "ci_hi", "p", "q", "p_tost", "n"]].copy()
+    e["log10_bf01_cauchy"] = [-ev.log_bf10(b, s_) / np.log(10) for b, s_ in zip(e.beta, e.se, strict=True)]
+    e["bf01_cauchy"] = 10 ** e.log10_bf01_cauchy
+    e["bf10_cauchy"] = 1 / e.bf01_cauchy
+    e["bf01_normal_sesoi"] = [np.exp(-ev.log_bf10(b, s_, "normal", gcfg["tost_d"]))
+                              for b, s_ in zip(e.beta, e.se, strict=True)]
+    e["evidence"] = e.bf01_cauchy.map(ev.category)
+    e["mde"] = e.se.map(ev.mde)
+    n_fam = e.groupby(["model", "family"]).outcome.transform("size")   # Bonferroni within each model x family
+    e["mde_bonferroni_family"] = [ev.mde(s_, 0.05 / k) for s_, k in zip(e.se, n_fam, strict=True)]
+    e.to_csv(out / "evidence.tsv", sep="\t", index=False, na_rep="n/a")
+
+    def block(d):
+        return {"n_outcomes": len(d), "bf01_cauchy_min": float(d.bf01_cauchy.min()),
+                "bf01_cauchy_median": float(d.bf01_cauchy.median()),
+                "bf01_normal_min": float(d.bf01_normal_sesoi.min()),
+                "bf01_normal_median": float(d.bf01_normal_sesoi.median()),
+                "n_bf01_gt3": int((d.bf01_cauchy > 3).sum()), "n_bf01_gt10": int((d.bf01_cauchy > 10).sum()),
+                "n_bf10_gt3": int((d.bf10_cauchy > 3).sum()), "evidence_counts": d.evidence.value_counts().to_dict(),
+                "mde_median": float(d.mde.median()), "mde_max": float(d.mde.max()),
+                "mde_bonferroni_family_median": float(d.mde_bonferroni_family.median())}
+
+    summary = {f"{mo} | {fam}": block(d) for (mo, fam), d in e.groupby(["model", "family"])}
+    apr = e[(e.model == "main") & (e.family == "apriori")].set_index("outcome")
+    summary["main_apriori_table"] = apr[["beta", "ci_lo", "ci_hi", "log10_bf01_cauchy", "bf01_cauchy",
+                                         "bf01_normal_sesoi", "evidence", "mde"]].reset_index().to_dict("records")
+    (out / "evidence.json").write_text(json.dumps(g.json_clean(summary), indent=2, allow_nan=False, default=str))
+    print(apr[["beta", "se", "bf01_cauchy", "bf01_normal_sesoi", "evidence", "mde", "mde_bonferroni_family"]]
+          .round(3).to_string())
+    print(json.dumps(g.json_clean({k: v for k, v in summary.items() if k != "main_apriori_table"}), indent=1))
+
+
+def cmd_patients(args: argparse.Namespace) -> None:
+    """Within-patient analyses (plan 6.6 / 13e, operationalized 2026-10-31) -> <results>/08_group/patients/.
+    (1) Clinical associations: each predictor (analysis.yaml group.patients; standardized, so beta = SD of outcome per
+    SD of predictor) in its own mixed model with PTA4 + covariates (all patients incl. patient-only sites; complete
+    covariates, so no imputation), and with PTA_HF beyond PTA4 as sensitivity; families a priori / DK thickness /
+    DK area / aseg, BH within family x predictor x model. -> associations.tsv
+    (2) TINN vs TNHL: (a) spatial similarity of the factorial TINN-vs-CTRL and TNHL-vs-HLOS DK thickness z-maps (spin);
+    (b) TNHL vs TINN on hearing-adjusted Model B deviations (F1 + F3): per region OLS with site fixed effects, SEs
+    clustered by site, t(G - 1); BH per family; extreme-deviation burden (NB). -> tinn_vs_tnhl.tsv
+    summary.json for both."""
+    from tinception.stats import robust as rb
+
+    cfg, p = config.analysis(), config.paths()
+    res_dir = args.out or p.results / "08_group"
+    nd = p.derivatives / "normative" / "CO" / "B"
+    for f in (res_dir / "h1" / "models.tsv", nd / "feature_calibration.tsv", nd / "z_all.tsv"):  # fail before fits
+        if not f.exists():
+            raise SystemExit(f"{f} missing (run 08_group.py h1 and the normative step first)")
+    df, spec, gcfg = load(args, population="patients")
+    pcfg = gcfg["patients"]
+    out = res_dir / "patients"
+    out.mkdir(parents=True, exist_ok=True)
+    if not df.group.eq("TI").all():   # in_patients = core_complete & qc_ok & TI (04_master)
+        raise SystemExit("in_patients contains non-TI subjects")
+    df = df.assign(log_duration=np.log1p(df.duration_months)).reset_index(drop=True)
+    cov = covariates()
+    fitted = set().union(*spec["families"].values())
+    extra = [c for c in spec["apriori"] if c not in fitted]   # a priori outcomes not in a family (MGN)
+    rows = []
+    for pred in [pcfg["primary"], *pcfg["secondary"]]:
+        d = df.dropna(subset=[pred])
+        dh = g.residualize(d[d.PTA_HF.notna()].reset_index(drop=True), "PTA_HF", ["PTA4"], "PTA_HF_res")
+        for hear, dd, terms in (("PTA4", d, [pred, "PTA4", *cov]), ("PTA4+PTA_HF_res", dh, [pred, *HEARING, *cov])):
+            con = {pred: {pred: 1.0}}
+            fam_res = [run(dd, cols, terms, con, f, spec, gcfg, tost=False, extra_continuous=(pred,))
+                       for f, cols in spec["families"].items()]
+            if extra:
+                fam_res.append(run(dd, extra, terms, con, "apriori_extra", spec, gcfg, tost=False,
+                                   extra_continuous=(pred,)))
+            r = pd.concat(fam_res, ignore_index=True)
+            apr = r[r.outcome.isin(spec["apriori"])].drop_duplicates("outcome").copy()   # a priori family from fits
+            apr["family"] = "apriori"
+            apr["q"] = g.requery(apr)
+            r = pd.concat([r[r.family != "apriori_extra"], apr], ignore_index=True)
+            rows.append(r.assign(predictor=pred, hearing=hear, primary=pred == pcfg["primary"] and hear == "PTA4"))
+        print(f"{pred}: up to n={len(d)}, with PTA_HF up to n={len(dh)} (fitted n per row in 'n')", flush=True)
+    assoc = pd.concat(rows, ignore_index=True)
+    assoc.to_csv(out / "associations.tsv", sep="\t", index=False, na_rep="n/a")
+    q_thr = gcfg["fdr_q"]
+
+    # (2a) spatial similarity of the factorial tinnitus maps
+    models = pd.read_csv(res_dir / "h1" / "models.tsv", sep="\t", na_values="n/a")
+    from neuromaps.nulls.spins import gen_spinsamples
+
+    coords, hemi, names = g.parcel_centroids(p.freesurfer / "fsaverage")
+    cols = [f"thick__{n}" for n in names]
+    fz = {c: sel(models, "factorial", "dk_thick", c).loc[cols].z.to_numpy() for c in
+          ("TINN_vs_CTRL", "TNHL_vs_HLOS", "HLOS_vs_CTRL")}
+    spins = gen_spinsamples(coords, hemi, n_rotate=gcfg["spin_n"], method="vasa", seed=cfg["seed"])
+    spatial = {f"{a}~{b}": g.spin_correlation_spins(fz[a], fz[b], spins)
+               for a, b in (("TINN_vs_CTRL", "TNHL_vs_HLOS"), ("TNHL_vs_HLOS", "HLOS_vs_CTRL"))}
+
+    # (2b) TNHL vs TINN on Model B deviations
+    ncfg = cfg["normative"]
+    ok = pd.read_csv(nd / "feature_calibration.tsv", sep="\t", index_col=0).ok
+    feats = ncore.f1f3(ok, ncfg)
+    master = pd.read_csv(args.master or p.root / "tinception_master.tsv", sep="\t", na_values="n/a",
+                         low_memory=False)[[g.ID, "site", "group4", "euler_total"]]
+    z = pd.read_csv(nd / "z_all.tsv", sep="\t", na_values="n/a").merge(master, on=g.ID)
+    z = z[z.group4.isin(["TINN", "TNHL"])].assign(TNHL=lambda x: x.group4.eq("TNHL").astype(int))
+    both = z.groupby("site").TNHL.nunique()
+    z = z[z.site.isin(both.index[both == 2])].reset_index(drop=True)   # site FE: one-group sites are uninformative
+    safe = {f: f"f{i}" for i, f in enumerate(feats)}
+    zs = z.rename(columns=safe)
+    tt = []
+    for f in feats:
+        try:
+            e = rb.wls_effect(zs, safe[f], "TNHL + euler_total + C(site)", "TNHL", site="site")
+        except (ValueError, KeyError, np.linalg.LinAlgError):
+            e = {"beta": np.nan, "se": np.nan, "ci_lo": np.nan, "ci_hi": np.nan, "p": np.nan, "n": 0}
+        tt.append({"family": "dk_thick" if f.startswith("thick__") else "aseg", "outcome": f, **e})
+    tt = pd.DataFrame(tt)
+    tt["q"] = tt.groupby("family").p.transform(g.bh)
+    tt.to_csv(out / "tinn_vs_tnhl.tsv", sep="\t", index=False, na_rep="n/a")
+    burden = h2.counts(z, feats, ncfg["extreme_z"]).merge(z[[g.ID, "TNHL", "site", "euler_total"]], on=g.ID)
+    nb = [h2.nb_burden(burden, o, group="TNHL") for o in ("n_pos", "n_neg")]
+
+    prim = assoc[assoc.primary]
+    summary = {
+        "associations_hits": assoc[assoc.q < q_thr][["predictor", "hearing", "family", "outcome", "beta", "p", "q", "n"]]
+        .to_dict("records"),
+        "associations_min_q": {f"{pr} | {h} | {f}": float(v) for (pr, h, f), v in
+                               assoc.groupby(["predictor", "hearing", "family"]).q.min().items()},
+        "primary_apriori": prim[prim.family == "apriori"][["outcome", "beta", "ci_lo", "ci_hi", "p", "q", "n"]]
+        .to_dict("records"),
+        "n_by_predictor": {f"{pr} | {h}": int(v) for (pr, h), v in assoc.groupby(["predictor", "hearing"]).n.max().items()},
+        "primary_predictor": pcfg["primary"],
+        "tinn_vs_tnhl": {"n_TINN": int((z.TNHL == 0).sum()), "n_TNHL": int((z.TNHL == 1).sum()),
+                         "n_sites": int(z.site.nunique()),
+                         "hits": tt[tt.q < q_thr][["family", "outcome", "beta", "p", "q"]].to_dict("records"),
+                         "min_q": tt.groupby("family").q.min().to_dict(), "burden": nb, "spatial": spatial}}
+    (out / "summary.json").write_text(json.dumps(g.json_clean(summary), indent=2, allow_nan=False, default=str))
+    print(json.dumps(g.json_clean({k: v for k, v in summary.items() if k != "primary_apriori"}), indent=1,
+                     default=str))
+
+
+def cmd_hyperacusis(args: argparse.Namespace) -> None:
+    """Robustness of the hyperacusis association (plan 6.6, rule fixed 2026-10-31 before running): for `--outcome`
+    (default R rostral ACC thickness), the full mixed model (as `patients`, PTA4 hearing), leave-one-site-out
+    refits, per-site (= per-instrument) OLS estimates (HC3, linear age; outcome and predictor standardized on the
+    pooled sample) with a DerSimonian-Laird meta-analysis, and a Bayes factor. Robust = same sign and p < .05 in every
+    leave-one-site-out run and I^2 < 50 %. -> <results>/08_group/patients/hyperacusis_robustness.json"""
+    from tinception.stats import evidence as ev
+    from tinception.stats import robust as rb
+
+    df, spec, gcfg = load(args, population="patients")
+    pred, o = "hyperacusis_z", args.outcome
+    d = df.dropna(subset=[pred, o]).reset_index(drop=True)
+    terms = [pred, "PTA4", *covariates()]
+    con = {pred: {pred: 1.0}}
+
+    def fit(dd):
+        r = run(dd, [o], terms, con, "single", spec, gcfg, tost=False, extra_continuous=(pred,)).iloc[0]
+        return {"beta": float(r.beta), "se": float(r.se), "p": float(r.p), "n": int(r.n), "converged": bool(r.converged)}
+
+    full = fit(d)
+    loso = {s_: fit(d[d.site != s_].reset_index(drop=True)) for s_ in sorted(d.site.unique())}
+    z = d.assign(y=(d[o] - d[o].mean()) / d[o].std(), x=(d[pred] - d[pred].mean()) / d[pred].std())
+    per_site = {}
+    for s_, ds in z.groupby("site"):
+        try:
+            per_site[s_] = rb.wls_effect(ds, "y", "x + PTA4 + age + C(sex) + euler_total", "x", site=None)
+        except (ValueError, KeyError, np.linalg.LinAlgError) as err:
+            per_site[s_] = {"error": str(err)[:80]}
+    ok = {k: v for k, v in per_site.items() if np.isfinite(v.get("se", np.nan))}
+    meta = rb.dl_meta(np.array([v["beta"] for v in ok.values()]), np.array([v["se"] for v in ok.values()]))
+    sign = np.sign(full["beta"])
+    robust = bool(all(np.sign(v["beta"]) == sign and v["p"] < 0.05 for v in loso.values()) and meta["i2"] < 50)
+    out = {"outcome": o, "predictor": pred, "full": full, "bf10_cauchy": ev.bf10(full["beta"], full["se"]),
+           "loso": loso, "loso_beta_range": [min(v["beta"] for v in loso.values()), max(v["beta"] for v in loso.values())],
+           "loso_p_max": max(v["p"] for v in loso.values()), "per_site": per_site, "meta": meta, "robust": robust}
+    dest = (args.out or config.paths().results / "08_group") / "patients"
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "hyperacusis_robustness.json").write_text(json.dumps(g.json_clean(out), indent=2, allow_nan=False,
+                                                                default=str))
+    print(json.dumps(g.json_clean({k: v for k, v in out.items() if k not in ("loso", "per_site")}), indent=1, default=str))
+    for k, v in loso.items():
+        print(f"  without {k:11s} beta {v['beta']:.3f} p {v['p']:.4f} n {v['n']}")
+    for k, v in per_site.items():
+        print(f"  site {k:11s} beta {v.get('beta', np.nan):.3f} se {v.get('se', np.nan):.3f} n {v.get('n', 0)}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--master", type=Path, default=None)
@@ -790,6 +1046,12 @@ def main() -> None:
     sub.add_parser("h1d-ci").set_defaults(func=cmd_h1d_ci)
     sub.add_parser("global-fdr").set_defaults(func=cmd_global_fdr)
     sub.add_parser("sites").set_defaults(func=cmd_sites)
+    sub.add_parser("interaction").set_defaults(func=cmd_interaction)
+    sub.add_parser("evidence").set_defaults(func=cmd_evidence)
+    sub.add_parser("patients").set_defaults(func=cmd_patients)
+    hy = sub.add_parser("hyperacusis")
+    hy.add_argument("--outcome", default="thick__rh_rostralanteriorcingulate")
+    hy.set_defaults(func=cmd_hyperacusis)
     args = ap.parse_args()
     args.func(args)
 
