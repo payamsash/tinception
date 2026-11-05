@@ -5,7 +5,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=16G
-#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129,u24-chaiam0-613   # broken apptainer / share mount on these nodes
+#SBATCH --exclude=u24-cva0ls0-509,u24-cva0000-129,u24-chaiam0-613,u24-chaihm0-636   # broken apptainer / share mount on these nodes
 #SBATCH --output=logs/predict_%A_%a.out
 set -euo pipefail
 export TINCEPTION_ENV=cluster OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
