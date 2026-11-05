@@ -219,6 +219,8 @@ meta_peaks:                  # plan 6.10 B1: published meta-analytic peaks (Maka
     NH_L_ITG: [-52, -6, -30, -1, normal_hearing]
     HL_R_lingual_precuneus: [18, -56, 0, 1, hearing_loss]
     HL_L_precuneus_lingual: [-14, -68, 38, 1, hearing_loss]
+  ale_peaks:                 # plan 6.10 B2 ALE (descriptive, < 17 experiments): corrected-only condition cluster
+    ALEcorr_L_PT: [-48, -34, 8, 0, all]   # Boyen 2013 (+) and Kim 2025 (-) only: direction mixed -> 0
 
 stats:
   n_perm: 5000
@@ -237,3 +239,12 @@ qc:
   fs_input_notes:            # subjects whose FreeSurfer input differs from the site default
     sub-london1AGe1: "mean of 6 MPM T1w echoes (echo-1 recon-all failed); Euler -644"
     sub-london1DWCe1: "mean of 6 MPM T1w echoes (echo-1 recon-all failed); Euler -440"
+
+ale:                         # plan 6.10 B2 (fixed 2026-11-04 before the paywalled coordinates were extracted)
+  conditions: [primary, corrected, vbm, decreases, increases]
+  min_experiments: 17        # Eickhoff et al. 2016
+  voxel_thresh: 0.001        # cluster-forming
+  cluster_p: 0.05            # cluster-level FWE (size)
+  n_iters: 5000
+  failsafe_iters: 1000       # per ALE inside the fail-safe search
+  failsafe_max_factor: 10    # stop when a cluster survives 10x the number of included experiments
