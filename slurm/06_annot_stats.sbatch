@@ -20,14 +20,16 @@ SUB=$(awk -F'\t' -v i=$((SLURM_ARRAY_TASK_ID + 1)) 'NR==i {print $1}' "$LIST")
 run() { apptainer exec -B "$SUBJECTS_DIR,$LICENSE" --env SUBJECTS_DIR="$SUBJECTS_DIR",FS_LICENSE="$LICENSE" "$SIF" \
           bash -c 'export K=$SUBJECTS_DIR; source $FREESURFER_HOME/SetUpFreeSurfer.sh >/dev/null; export SUBJECTS_DIR=$K; exec "$@"' _ "$@"; }
 
-for ANNOT in Schaefer2018_400Parcels_7Networks_order HCPMMP1; do
+# ANNOTS="<names>" to map other fsaverage annotations (e.g. Schaefer 100/200 for MIND, plan 6.12)
+for ANNOT in ${ANNOTS:-Schaefer2018_400Parcels_7Networks_order HCPMMP1}; do
   for H in lh rh; do
     A=$SUBJECTS_DIR/$SUB/label/$H.$ANNOT.annot
     S=$SUBJECTS_DIR/$SUB/stats/$H.$ANNOT.stats
     [[ -f $A ]] || run mri_surf2surf --srcsubject fsaverage --trgsubject "$SUB" --hemi $H \
                       --sval-annot "$SUBJECTS_DIR/fsaverage/label/$H.$ANNOT.annot" --tval "$A"
-    # same options as recon-all's aparc stats (-th3 volumes, cortex mask) -> comparable to DK/DKT/Destrieux
-    [[ -f $S ]] || run mris_anatomical_stats -th3 -mgz -cortex "$SUBJECTS_DIR/$SUB/label/$H.cortex.label" \
+    # same options as recon-all's aparc stats (-th3 volumes, cortex mask) -> comparable to DK/DKT/Destrieux;
+    # ANNOT_ONLY=1 skips the stats (e.g. annotations needed only for MIND)
+    [[ ${ANNOT_ONLY:-0} == 1 || -f $S ]] || run mris_anatomical_stats -th3 -mgz -cortex "$SUBJECTS_DIR/$SUB/label/$H.cortex.label" \
                       -a "$A" -f "$S" -b "$SUB" $H white
   done
 done
